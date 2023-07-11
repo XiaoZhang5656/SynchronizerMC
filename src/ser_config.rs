@@ -15,24 +15,55 @@ pub struct Config{
     pub(crate) http_port:u32,
 }
 
-// 玩家数据结构体
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Player {
-    pub name: String,
-    pub xuid: String,
-    pub online: String,
-    pub ip: String,
-    pub last_server: String,
-    pub balance: i32,
-    pub data: String,
+    pub pl_xuid: String,
+    pub pl_name: String,
+    pub pl_llmoney: i32,
+    pub pl_ip: String,
+    pub pl_online: String,
+    pub pl_server_name: String,
+    pub pl_device: String,
+    pub permission_name: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WsData {
+    pub(crate)key:String,
+    pub(crate)data:String,
+    pub(crate)typestr:String
+}
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DataChat {
+    pub(crate)player:String,
+    pub(crate)chat:String
+}
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Person {
+    pub(crate)typestr: String,
+    pub(crate)data: String,
+    pub(crate)perm: String,
+}
 
+#[derive(Debug, Serialize)]
+pub struct DataResponse {
+    pub(crate)code: String,
+    pub(crate)msg: String,
+}
 
+#[derive(Debug, Serialize)]
+pub struct JsonResponse {
+    pub(crate)data: DataResponse,
+}
 
+#[derive(Debug, Deserialize)]
+pub struct UserData {
+    pub(crate)name: String,
+}
 
-
-
-
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Players {
+    pub players: Vec<String>,
+}

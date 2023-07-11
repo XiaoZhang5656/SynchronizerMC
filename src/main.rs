@@ -126,6 +126,7 @@ fn start_mysql(config: Config) {
     println!("{}", "Mysql已连接".green());
     // 创建玩家表
     create_tables_with_foreign_key(&pool).expect("Failed to create player table");
+    
 }
 
 // 启动ws端
@@ -162,6 +163,9 @@ async fn start_http_server(config: Config){
         let _ = rocket::custom(config)
             .mount("/getpermissions", routes![getpermissions])
             .mount("/getinformation", routes![getinformation])
+            .mount("/getMessageauthority", routes![get_messageauthority])
+            .mount("/getLoginChat", routes![get_login_chat])
+            .mount("/getplayerall", routes![getplayerall])
             // .mount("/", routes![index])
             .launch()
             .await;
