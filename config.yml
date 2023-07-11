@@ -1,8 +1,9 @@
 ---
-host: localhost
-port: 3306
-username: bc_test
-password: 123456
-database: my_test
-ws_port: 8080
-ws_key: s80ox5r2vy
+database_host: localhost
+database_port: 3306
+database_username: bc_test
+database_password: "123456"
+database_dataname: my_test
+ws_port: 8081
+ws_key: c4h3l8tac51rq8os
+http_port: 8082

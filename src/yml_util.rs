@@ -1,18 +1,11 @@
 use rand::Rng;
-use serde::Deserialize;
-use serde::Serialize;
 use std::fs::File;
 use std::io::{Read, Write};
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Config {
-    pub host: String,
-    pub port: u32,
-    pub username: String,
-    pub password: String,
-    pub database: String,
-    pub ws_port: i32,
-    pub ws_key: String,
-}
+
+use crate::ser_config::Config;
+
+use md5;
+
 pub fn generate_random_key(length: usize) -> String {
     let mut rng = rand::thread_rng();
     let characters: Vec<char> = "abcdefghijklmnopqrstuvwxyz0123456789".chars().collect();
@@ -39,4 +32,11 @@ pub fn read_yml(file_path: &str) -> Result<Config, Box<dyn std::error::Error>> {
     file.read_to_string(&mut contents)?;
     let config: Config = serde_yaml::from_str(&contents)?;
     Ok(config)
+}
+
+pub fn decrypt_name_t(name_text: String, t: String) -> String {
+    let name_key = md5::compute(name_text);
+    let iv = format!("{:x}", name_key) + &t;
+    let hashed = md5::compute(iv);
+    format!("{:x}", hashed)
 }

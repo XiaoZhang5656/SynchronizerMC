@@ -1,117 +1,69 @@
-use std::f32::consts::E;
+use crate::{server::mysql_util::getplayerpermissions, yml_util::decrypt_name_t};
 
-use crate::server::mysql_util::*;
+use rocket::{get, http::Status, post, Responder};
 use serde::{Deserialize, Serialize};
+extern crate crypto;
 
 use crate::POOL;
 
-#[derive(Debug, Deserialize)]
-struct UserData {
-    name: String,
-}
+// 自定义状态码并返回数据
+#[derive(Responder)]
+#[response(content_type = "json")]
+pub struct HttpGetResponder((rocket::http::Status, String));
 
-#[derive(Debug, Serialize)]
-struct DataResponse {
-    code: String,
-    msg: String,
+#[get("/?<name>")]
+pub fn getpermissions(name: Option<String>) -> HttpGetResponder {
+    let name = name.unwrap_or_default();
+    println!("name: {}", name);
+
+    // 获取玩家权限组全部信息
+
+
+    let status = Status::NotFound;
+    let message = serde_json::to_string(&"{\"message\": false}").unwrap();
+    HttpGetResponder((status, message))
 }
-#[derive(Debug, Serialize)]
-struct JsonResponse {
-    data: DataResponse,
-}
-#[post(
-    "/getMessageauthority",
-    format = "application/json",
-    data = "<user_data>"
-)]
-pub fn handle_request(user_data: String) -> String {
-    if let Ok(ws_data) = serde_json::from_str::<UserData>(&user_data) {
-        // 在这里处理解析成功的逻辑
-        let name = &ws_data.name;
-        let pool = POOL
+#[get("/?<name>&<pws>&<t>")]
+pub fn getinformation(name: Option<String>, pws: Option<String>, t: Option<String>) -> HttpGetResponder {
+    let name = name.unwrap_or_default();
+    let pws = pws.unwrap_or_default();
+    let t = t.unwrap_or_default();
+    let md5pws = decrypt_name_t(name.to_string(), t.to_string());
+    println!("{}", md5pws);
+    if md5pws == pws {
+        // getinformation
+        let pool: mysql::Pool = POOL
             .lock()
             .unwrap()
             .as_ref()
             .expect("Pool not initialized")
             .clone();
-        let result = get_player_by_name(&pool, &name);
-        let data = match result {
-            Ok(Some(player)) => {
-                if player.chat_perm.parse::<bool>().unwrap_or(false)&&player.game_perm.parse::<bool>().unwrap_or(false) {
-                    DataResponse {
-                        code: "200".to_string(),
-                        msg: "true".to_string(),
-                    }
+        let permissions = getplayerpermissions(&pool, &name);
+        match permissions {
+            Ok(result) => {
+                if !result.is_empty() {
+                    let status = Status::Ok;
+                    let message = result.to_string();
+                    return HttpGetResponder((status, message));
                 } else {
-                    DataResponse {
-                        code: "403".to_string(),
-                        msg: "false".to_string(),
-                    }
+                    let status = Status::NoContent;
+                    let message = serde_json::to_string(&"{\"message\": false}").unwrap();
+                    return HttpGetResponder((status, message))
                 }
             }
-
-            Ok(None) => DataResponse {
-                code: "404".to_string(),
-                msg: "false".to_string(),
-            },
             Err(err) => {
-                println!("Error: {:?}", err);
-                DataResponse {
-                    code: "500".to_string(),
-                    msg: "error".to_string(),
-                }
+                let status = Status::Forbidden;
+                let message = serde_json::to_string(&"{\"message\": false}").unwrap();
+                return HttpGetResponder((status, message))
             }
-        };
-        let json_response = JsonResponse { data };
-        format!("{}", serde_json::to_string(&json_response).unwrap())
-    } else {
-        // 在这里处理解析失败的逻辑
-        "Failed to parse JSON data".to_string()
+        }
     }
+    let status = Status::NotFound;
+    let message = serde_json::to_string(&"{\"message\": false}").unwrap();
+    HttpGetResponder((status, message))
 }
 
-#[post("/getLoginChat", format = "application/json", data = "<user_data>")]
-pub fn get_login_chat(user_data: String) -> String {
-    if let Ok(ws_data) = serde_json::from_str::<UserData>(&user_data) {
-        // 在这里处理解析成功的逻辑
-        let name = &ws_data.name;
-        let pool = POOL
-            .lock()
-            .unwrap()
-            .as_ref()
-            .expect("Pool not initialized")
-            .clone();
-        let result = get_player_by_name(&pool, &name);
-        let data = match result {
-            Ok(Some(player)) => {
-                if player.game_perm.parse::<bool>().unwrap_or(false) {
-                    DataResponse {
-                        code: "200".to_string(),
-                        msg: "true".to_string(),
-                    }
-                } else {
-                    DataResponse {
-                        code: "403".to_string(),
-                        msg: "false".to_string(),
-                    }
-                }
-            }
-            Ok(None) => DataResponse {
-                code: "404".to_string(),
-                msg: "false".to_string(),
-            },
-            Err(err) => {
-                println!("Error: {:?}", err);
-                DataResponse {
-                    code: "500".to_string(),
-                    msg: "error".to_string(),
-                }
-            }
-        };
-        let json_response = JsonResponse { data };
-        format!("{}", serde_json::to_string(&json_response).unwrap())
-    } else {
-        // 在这里处理解析失败的逻辑
-        "Failed to parse JSON data".to_string()
-    }
-}
+// #[get("/")]
+// pub fn index() -> &'static str {
+//     "接口/getMessageauthority \n"
+// }
