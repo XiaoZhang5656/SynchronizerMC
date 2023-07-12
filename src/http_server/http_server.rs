@@ -1,10 +1,9 @@
-
 use crate::{
     server::mysql_util::{get_playerspermissions, getplayerpermissions},
     yml_util::decrypt_name_t,
 };
 
-use rocket::{catch, get, http::Status, post, Responder,Request};
+use rocket::{catch, get, http::Status, post, Request, Responder};
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
 extern crate crypto;
@@ -46,7 +45,7 @@ pub fn get_messageauthority(name: Option<String>) -> HttpGetResponder {
         Ok(None) => {
             let status = Status::NotFound;
             let message = serde_json::to_string(&Response {
-                message: "false".to_string(),
+                message: "null".to_string(),
             })
             .unwrap();
             return HttpGetResponder((status, message));
@@ -54,14 +53,13 @@ pub fn get_messageauthority(name: Option<String>) -> HttpGetResponder {
         Err(_err) => {
             let status = Status::NotFound;
             let message = serde_json::to_string(&Response {
-                message: "false".to_string(),
+                message: "null".to_string(),
             })
             .unwrap();
             return HttpGetResponder((status, message));
         }
     }
 }
-
 
 // 获取登录玩家的信息
 #[post("/", format = "application/json", data = "<user_data>")]
@@ -73,7 +71,7 @@ pub fn get_login_chat(user_data: String) -> HttpGetResponder {
     println!("get_login_chat接受参数： {}", user_data);
 
     // 解析数据
-    match from_str::<UserDatas>(&user_data) {
+    match from_str::<UserData>(&user_data) {
         Ok(data) => {
             name = data.name;
             token = data.token;
@@ -100,10 +98,7 @@ pub fn get_login_chat(user_data: String) -> HttpGetResponder {
             Ok(Some(_player)) => {
                 let json_data = serde_json::to_string(&_player).unwrap();
                 let status = Status::Ok;
-                let message = serde_json::to_string(&Response {
-                    message: json_data
-                })
-                .unwrap();
+                let message = json_data;
                 HttpGetResponder((status, message))
             }
             Ok(None) => {
@@ -115,7 +110,7 @@ pub fn get_login_chat(user_data: String) -> HttpGetResponder {
                 HttpGetResponder((status, message))
             }
             Err(_err) => {
-                let status = Status::NotFound;
+                let status = Status::Forbidden;
                 let message = serde_json::to_string(&Response {
                     message: "null".to_string(),
                 })
@@ -133,22 +128,15 @@ pub fn get_login_chat(user_data: String) -> HttpGetResponder {
     }
 }
 
-// 获取所有玩家信息
-#[derive(Debug, Deserialize)]
-struct UserDatas {
-    name: String,
-    token: String,
-    t: String,
-}
 #[derive(Debug, Deserialize)]
 struct UserData {
     name: String,
-    t: u32,
+    t: String,
     token: String,
 }
 #[post("/", format = "application/json", data = "<user_data>")]
 pub fn getplayerall(user_data: String) -> HttpGetResponder {
-    println!("getplayerall: {}", user_data);//
+    println!("getplayerall: {}", user_data); //
     let mut name = String::new();
     let mut t = String::new();
     let mut token = String::new();
@@ -157,7 +145,7 @@ pub fn getplayerall(user_data: String) -> HttpGetResponder {
     match from_str::<UserData>(&user_data) {
         Ok(data) => {
             name = data.name;
-            t = data.t.to_string();
+            t = data.t;
             token = data.token;
         }
         Err(err) => eprintln!("Failed to parse JSON: {}", err),
@@ -166,11 +154,10 @@ pub fn getplayerall(user_data: String) -> HttpGetResponder {
     println!("name: {}", name);
     println!("t: {}", t);
     println!("token: {}", token);
-
-    let md5pws = decrypt_name_t(name.clone(), token.clone());
+    let md5pws = decrypt_name_t(name.clone(), t.clone());
     println!("正确密钥： {},{}", md5pws, t.clone());
 
-    if md5pws == t {
+    if md5pws == token {
         let pool: mysql::Pool = POOL
             .lock()
             .unwrap()
@@ -182,10 +169,7 @@ pub fn getplayerall(user_data: String) -> HttpGetResponder {
             Ok(Some(players)) => {
                 let json_data = serde_json::to_string(&players).unwrap();
                 let status = Status::Ok;
-                let message = serde_json::to_string(&Response {
-                    message: json_data,
-                })
-                .unwrap();
+                let message =json_data;
                 HttpGetResponder((status, message))
             }
             _ => {
@@ -213,8 +197,6 @@ pub fn not_found(req: &Request) -> String {
         "文档地址：https://github.com/banchen19/SynchronizerMC/blob/master/book.md".to_string();
     format!("Sorry, '{}' is not a valid path.\n{}", req.uri(), str)
 }
-
-
 
 // #[get("/")]
 // pub fn index() -> &'static str {
