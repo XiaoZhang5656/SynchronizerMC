@@ -58,12 +58,13 @@ pub struct JsonResponse {
     pub(crate)data: DataResponse,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct UserData {
-    pub(crate)name: String,
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Players {
     pub players: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PermissionMg {
+    typestr:String,
+    perm_name:String
 }

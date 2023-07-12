@@ -54,27 +54,8 @@ application/json
 }
 ```
 ---
-### Post http://fanbk.tpddns.cn:8082/getMessageauthority
- 请求头
- ```
- Content-Type
-
-application/json
- ```
-  请求体
-```json
-{
-    "name": "banchen21",
-    "t": "null",
-    "pws": "null"
-}
-```
- 返回内容
-```
-bds
-```
----
-### Get http://fanbk.tpddns.cn:8082/getpermissions?name=banchen21
+### Get http://fanbk.tpddns.cn:8082/getMessageauthority?name=banchen21
+返回内容
 ```json
  {"message":"bds"}
 ```

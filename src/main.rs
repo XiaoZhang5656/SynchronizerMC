@@ -15,8 +15,8 @@ use yml_util::generate_random_key;
 // use std::error::Error;
 // 异步
 use std::{
-    fs,
     error::Error,
+    fs,
     sync::{Arc, Mutex},
     thread,
 };
@@ -38,8 +38,7 @@ use crate::http_server::http_server::*;
 #[macro_use]
 extern crate lazy_static;
 lazy_static! {
-    static ref  
-    POOL: Mutex<Option<Pool>> = Mutex::new(None);
+    static ref POOL: Mutex<Option<Pool>> = Mutex::new(None);
 }
 
 // 美化输出
@@ -62,13 +61,12 @@ async fn main() {
             tokio::try_join!(ws_server_task, http_server_task).unwrap();
         }
         Err(err) => {
-            println!("读取配置文件失败：{}",  err);
+            println!("读取配置文件失败：{}", err);
             // 错误处理逻辑...
         }
-    }    
+    }
     // 等待线程完成
     thread::sleep(std::time::Duration::from_secs(1));
-    
 }
 
 //初始化
@@ -87,14 +85,14 @@ fn inti_config(file_path: String) {
     match fs::metadata(&file_path) {
         Err(_) => {
             let text = "文件不存在, 开始写入".to_string();
-            println!("{}",text.yellow());
+            println!("{}", text.yellow());
             if let Err(err) = yml_util::write_config_to_yml(&config, &file_path) {
-                println!("无法写入配置文件：{}",err);
+                println!("无法写入配置文件：{}", err);
             }
         }
         Ok(_) => {
             let text = "配置文件存在".to_string();
-            println!("{}",text.green());
+            println!("{}", text.green());
         }
     }
 }
@@ -109,10 +107,10 @@ async fn read_yml_to_str(file_path: &str) -> Result<Config, Box<dyn Error>> {
 fn establish_connection(config: &Config) -> Pool {
     let url = format!(
         "mysql://{}:{}@{}:{}/{}",
-        config.database_username, 
-        config.database_password, 
-        config.database_host, 
-        config.database_port, 
+        config.database_username,
+        config.database_password,
+        config.database_host,
+        config.database_port,
         config.database_dataname
     );
     mysql::Pool::new(url).expect("Failed to create connection pool")
@@ -122,16 +120,15 @@ fn establish_connection(config: &Config) -> Pool {
 fn start_mysql(config: Config) {
     // 使用建立连接的函数
     let pool: Pool = establish_connection(&config);
-    
+
     *POOL.lock().unwrap() = Some(pool.clone());
     println!("{}", "Mysql已连接".green());
     // 创建玩家表
     create_tables_with_foreign_key(&pool).expect("Failed to create player table");
-    
 }
 
 // 启动ws端
-async fn start_ws_server(config: Config){
+async fn start_ws_server(config: Config) {
     // 启动 WebSocket 服务器
     let ws_server_task: tokio::task::JoinHandle<()> = tokio::spawn(async move {
         let text = "WS服务端已启动".to_string();
@@ -149,20 +146,19 @@ async fn start_ws_server(config: Config){
         }
     });
     let text = "Http服务端已启动".to_string();
-    println!("{}",text.green());
+    println!("{}", text.green());
     println!("Http服务端port: {}", config.http_port);
     ws_server_task.await.unwrap();
 }
 
 // 启动http端
-async fn start_http_server(config: Config){
+async fn start_http_server(config: Config) {
     // 启动 HTTP 服务器
     let http_server_task: tokio::task::JoinHandle<()> = tokio::spawn(async move {
         let config = OtherConfig::figment()
             .merge(("address", "0.0.0.0"))
             .merge(("port", config.http_port));
         let _ = rocket::custom(config)
-            .mount("/getpermissions", routes![getpermissions])
             .mount("/getMessageauthority", routes![get_messageauthority])
             .mount("/getLoginChat", routes![get_login_chat])
             .mount("/getplayerall", routes![getplayerall])

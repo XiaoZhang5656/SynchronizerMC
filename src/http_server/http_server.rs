@@ -1,12 +1,10 @@
-use std::str::FromStr;
 
 use crate::{
-    ser_config::{DataResponse, JsonResponse, UserData},
     server::mysql_util::{get_playerspermissions, getplayerpermissions},
     yml_util::decrypt_name_t,
 };
 
-use rocket::{get, http::Status, post, Responder, catch};
+use rocket::{catch, get, http::Status, post, Responder,Request};
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
 extern crate crypto;
@@ -22,8 +20,9 @@ pub struct Response {
     message: String,
 }
 
+// 获取玩家权限信息
 #[get("/?<name>")]
-pub fn getpermissions(name: Option<String>) -> HttpGetResponder {
+pub fn get_messageauthority(name: Option<String>) -> HttpGetResponder {
     let name = name.unwrap_or_default();
     let pool = POOL
         .lock()
@@ -63,59 +62,9 @@ pub fn getpermissions(name: Option<String>) -> HttpGetResponder {
     }
 }
 
-#[post(
-    "/",
-    format = "application/json",
-    data = "<user_data>"
-)]
-pub fn get_messageauthority(user_data: String) -> HttpGetResponder {
-    //getMessageauthority
-    
 
-    let mut name = String::new();
-
-    println!("get_login_chat接受参数： {}", user_data);
-
-    // 解析数据
-    match from_str::<UserDatas>(&user_data) {
-        Ok(data) => {
-            name = data.name;
-        }
-        Err(err) => eprintln!("Failed to parse JSON: {}", err),
-    }
-
-    let pool = POOL
-        .lock()
-        .unwrap()
-        .as_ref()
-        .expect("Pool not initialized")
-        .clone();
-    let result = getplayerpermissions(&pool, &name);
-    match result {
-        Ok(Some(_player)) =>{
-            let status = Status::Ok;
-            let message = _player.permission_name;
-            HttpGetResponder((status, message))
-        },
-        Ok(None) => {
-            let status = Status::Forbidden;
-                let message = "false".to_string();
-                HttpGetResponder((status, message))
-        },
-        Err(err) =>
-        {
-            let status = Status::NotFound;
-            let message = "false".to_string();
-            HttpGetResponder((status, message))
-        },
-    }
-}
-
-#[post(
-    "/",
-    format = "application/json",
-    data = "<user_data>"
-)]
+// 获取登录玩家的信息
+#[post("/", format = "application/json", data = "<user_data>")]
 pub fn get_login_chat(user_data: String) -> HttpGetResponder {
     let mut name = String::new();
     let mut pws = String::new();
@@ -159,7 +108,7 @@ pub fn get_login_chat(user_data: String) -> HttpGetResponder {
                 let message = "false".to_string();
                 HttpGetResponder((status, message))
             }
-            Err(err) => {
+            Err(_err) => {
                 let status = Status::NotFound;
                 let message = "false".to_string();
                 HttpGetResponder((status, message))
@@ -172,17 +121,14 @@ pub fn get_login_chat(user_data: String) -> HttpGetResponder {
     }
 }
 
+// 获取所有玩家信息
 #[derive(Debug, Deserialize)]
 struct UserDatas {
     name: String,
     pws: String,
     t: String,
 }
-#[post(
-    "/",
-    format = "application/json",
-    data = "<user_data>"
-)]
+#[post("/", format = "application/json", data = "<user_data>")]
 pub fn getplayerall(user_data: String) -> HttpGetResponder {
     println!("getplayerall: {}", user_data);
     let mut name = String::new();
@@ -233,12 +179,16 @@ pub fn getplayerall(user_data: String) -> HttpGetResponder {
         HttpGetResponder((status, message))
     }
 }
-use rocket::Request;
+
 #[catch(404)]
-pub fn not_found(req: &Request) ->String{
-    let str="文档地址：https://github.com/banchen19/SynchronizerMC/blob/master/book.md".to_string();
-    format!("Sorry, '{}' is not a valid path.\n{}", req.uri(),str)
+pub fn not_found(req: &Request) -> String {
+    let str =
+        "文档地址：https://github.com/banchen19/SynchronizerMC/blob/master/book.md".to_string();
+    format!("Sorry, '{}' is not a valid path.\n{}", req.uri(), str)
 }
+
+
+
 // #[get("/")]
 // pub fn index() -> &'static str {
 //     "接口/getMessageauthority \n"
