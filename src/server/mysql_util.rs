@@ -163,14 +163,12 @@ pub fn update_player(pool: &mysql::Pool, player: Player) -> mysql::Result<()> {
     let mut conn = pool.get_conn()?;
     conn.exec_drop(
         "UPDATE tb_player SET
-         pl_llmoney = :llmoney,
          pl_ip = :ip,
          pl_online = :online,
          pl_server_name = :server_name,
          pl_device = :device
          WHERE pl_name = :name",
         params! {
-            "llmoney" => player.pl_llmoney,
             "ip" => player.pl_ip,
             "online" => player.pl_online,
             "server_name" => player.pl_server_name,

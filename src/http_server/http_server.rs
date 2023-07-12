@@ -31,6 +31,9 @@ pub fn getpermissions(name: Option<String>) -> HttpGetResponder {
         .as_ref()
         .expect("Pool not initialized")
         .clone();
+
+    println!("name: {}", name);
+
     let result = getplayerpermissions(&pool, &name);
     match result {
         Ok(Some(_player)) => {
@@ -59,99 +62,41 @@ pub fn getpermissions(name: Option<String>) -> HttpGetResponder {
         }
     }
 }
-#[get("/?<name>&<pws>&<t>")]
-pub fn getinformation(
-    name: Option<String>,
-    pws: Option<String>,
-    t: Option<String>,
-) -> HttpGetResponder {
-    let name = name.unwrap_or_default();
-    let pws = pws.unwrap_or_default();
-    let t = t.unwrap_or_default();
-
-    let md5pws = decrypt_name_t(name.clone(), t);
-    println!("正确密钥： {}", md5pws);
-
-    if md5pws == pws {
-        let pool: mysql::Pool = POOL
-            .lock()
-            .unwrap()
-            .as_ref()
-            .expect("Pool not initialized")
-            .clone();
-        match getplayerpermissions(&pool, &name) {
-            Ok(Some(player)) => {
-                let json_string = serde_json::to_string(&player).unwrap();
-                let status = Status::Ok;
-                let message = json_string;
-                return HttpGetResponder((status, message));
-            }
-            Ok(None) => {
-                let status = Status::NotFound;
-                let message = serde_json::to_string(&Response {
-                    message: "false".to_string(),
-                })
-                .unwrap();
-                return HttpGetResponder((status, message));
-            }
-            Err(_err) => {
-                let status = Status::InternalServerError;
-                let message = serde_json::to_string(&Response {
-                    message: "false".to_string(),
-                })
-                .unwrap();
-                return HttpGetResponder((status, message));
-            }
-        }
-    } else {
-        let status = Status::NotFound;
-        let message = serde_json::to_string(&Response {
-            message: "false".to_string(),
-        })
-        .unwrap();
-        HttpGetResponder((status, message))
-    }
-}
 
 #[post(
     "/",
     format = "application/x-www-form-urlencoded",
     data = "<user_data>"
 )]
-pub fn get_messageauthority(user_data: String) -> String {
+pub fn get_messageauthority(user_data: String) -> HttpGetResponder {
     //getMessageauthority
 
-    if let Ok(ws_data) = serde_json::from_str::<UserData>(&user_data) {
-        // 在这里处理解析成功的逻辑
-        let name = &ws_data.name;
-        let pool = POOL
-            .lock()
-            .unwrap()
-            .as_ref()
-            .expect("Pool not initialized")
-            .clone();
-        let result = getplayerpermissions(&pool, &name);
-        let data = match result {
-            Ok(Some(_player)) => DataResponse {
-                code: "200".to_string(),
-                msg: "true".to_string(),
-            },
-            Ok(None) => DataResponse {
-                code: "403".to_string(),
-                msg: "false".to_string(),
-            },
-            Err(err) => {
-                DataResponse {
-                    code: "500".to_string(),
-                    msg: "error".to_string(),
-                }
-            }
-        };
-        let json_response = JsonResponse { data };
-        format!("{}", serde_json::to_string(&json_response).unwrap())
-    } else {
-        // 在这里处理解析失败的逻辑
-        "Failed to parse JSON data".to_string()
+    // 在这里处理解析成功的逻辑
+    let name = &user_data;
+    let pool = POOL
+        .lock()
+        .unwrap()
+        .as_ref()
+        .expect("Pool not initialized")
+        .clone();
+    let result = getplayerpermissions(&pool, &name);
+    match result {
+        Ok(Some(_player)) =>{
+            let status = Status::Ok;
+            let message = _player.permission_name;
+            HttpGetResponder((status, message))
+        },
+        Ok(None) => {
+            let status = Status::Forbidden;
+                let message = "false".to_string();
+                HttpGetResponder((status, message))
+        },
+        Err(err) =>
+        {
+            let status = Status::NotFound;
+            let message = "false".to_string();
+            HttpGetResponder((status, message))
+        },
     }
 }
 
@@ -160,76 +105,67 @@ pub fn get_messageauthority(user_data: String) -> String {
     format = "application/x-www-form-urlencoded",
     data = "<user_data>"
 )]
-pub fn get_login_chat(user_data: String) -> String {
-
+pub fn get_login_chat(user_data: String) -> HttpGetResponder {
     let mut name = String::new();
     let mut pws = String::new();
     let mut t = String::new();
 
+    println!("get_login_chat接受参数： {}", user_data);
+
     // 解析数据
-    let data: Vec<&str> = user_data.split('&').collect();
-    for item in data {
-        let parts: Vec<&str> = item.split('=').collect();
-        if parts.len() == 2 {
-            match parts[0] {
-                "name" => name = urlencoding::decode(parts[1]).unwrap_or_default(),
-                "token" => pws = urlencoding::decode(parts[1]).unwrap_or_default(),
-                "t" => t = urlencoding::decode(parts[1]).unwrap_or_default(),
-                _ => {}
-            }
+    match from_str::<UserDatas>(&user_data) {
+        Ok(data) => {
+            name = data.name;
+            pws = data.t;
+            t = data.pws;
         }
+        Err(err) => eprintln!("Failed to parse JSON: {}", err),
     }
 
+    println!("name: {}", name);
+    println!("t: {}", t);
+    println!("pws: {}", pws);
 
     let md5pws = decrypt_name_t(name.to_owned(), t.to_owned());
-
+    let pool = POOL
+        .lock()
+        .unwrap()
+        .as_ref()
+        .expect("Pool not initialized")
+        .clone();
     println!("正确密钥： {}", md5pws);
     if md5pws == pws {
-        let pool = POOL
-            .lock()
-            .unwrap()
-            .as_ref()
-            .expect("Pool not initialized")
-            .clone();
         let result = getplayerpermissions(&pool, &name);
-        let data = match result {
-            Ok(Some(_player)) => DataResponse {
-                code: "200".to_string(),
-                msg: "true".to_string(),
-            },
-            Ok(None) => DataResponse {
-                code: "403".to_string(),
-                msg: "false".to_string(),
-            },
+        match result {
+            Ok(Some(_player)) => {
+                let json_data = serde_json::to_string(&_player).unwrap();
+                let status = Status::Ok;
+                let message = json_data;
+                HttpGetResponder((status, message))
+            }
+            Ok(None) => {
+                let status = Status::Forbidden;
+                let message = "false".to_string();
+                HttpGetResponder((status, message))
+            }
             Err(err) => {
-                DataResponse {
-                    code: "500".to_string(),
-                    msg: "error".to_string(),
-                }
+                let status = Status::NotFound;
+                let message = "false".to_string();
+                HttpGetResponder((status, message))
             }
-        };
-        let json_response = JsonResponse { data };
-        format!("{}", serde_json::to_string(&json_response).unwrap())
+        }
     } else {
-        let data = {
-            DataResponse {
-                code: "404".to_string(),
-                msg: "false".to_string(),
-            }
-        };
-
-        let json_response = JsonResponse { data: data };
-        format!("{}", serde_json::to_string(&json_response).unwrap())
+        let status = Status::NotFound;
+        let message = "false".to_string();
+        HttpGetResponder((status, message))
     }
 }
-
-
 
 #[derive(Debug, Deserialize)]
 struct UserDatas {
     name: String,
+    pws: String,
     t: String,
-    token: String,
 }
 #[post(
     "/",
@@ -237,30 +173,29 @@ struct UserDatas {
     data = "<user_data>"
 )]
 pub fn getplayerall(user_data: String) -> HttpGetResponder {
-    
-    println!("{}",user_data);
+    println!("getplayerall: {}", user_data);
     let mut name = String::new();
     let mut t = String::new();
-    let mut token = String::new();
+    let mut pws = String::new();
 
     // 解析数据
     match from_str::<UserDatas>(&user_data) {
         Ok(data) => {
             name = data.name;
             t = data.t;
-            token = data.token;
+            pws = data.pws;
         }
         Err(err) => eprintln!("Failed to parse JSON: {}", err),
     }
 
     println!("name: {}", name);
     println!("t: {}", t);
-    println!("token: {}", token);
+    println!("pws: {}", pws);
 
-    let md5pws = decrypt_name_t(name.clone(), token.clone());
-    println!("正确密钥： {},{}", md5pws,t.clone());
+    let md5pws = decrypt_name_t(name.clone(), t.clone());
+    println!("正确密钥： {},{}", md5pws, t.clone());
 
-    if md5pws == t {
+    if md5pws == pws {
         let pool: mysql::Pool = POOL
             .lock()
             .unwrap()
@@ -268,21 +203,22 @@ pub fn getplayerall(user_data: String) -> HttpGetResponder {
             .expect("Pool not initialized")
             .clone();
         // 调用函数获取玩家权限信息
-        let players_permissions = match get_playerspermissions(&pool) {
-            Ok(Some(players)) => players.players,
-            _ => Vec::new(),
-        };
-        let json_data = serde_json::to_string(&players_permissions).unwrap();
-
-        let status = Status::Ok;
-        let message = json_data;
-        HttpGetResponder((status, message))
+        match get_playerspermissions(&pool) {
+            Ok(Some(players)) => {
+                let json_data = serde_json::to_string(&players).unwrap();
+                let status = Status::Ok;
+                let message = json_data;
+                HttpGetResponder((status, message))
+            }
+            _ => {
+                let status = Status::Forbidden;
+                let message = "false".to_string();
+                HttpGetResponder((status, message))
+            }
+        }
     } else {
         let status = Status::NotFound;
-        let message = serde_json::to_string(&Response {
-            message: "false".to_string(),
-        })
-        .unwrap();
+        let message = "false".to_string();
         HttpGetResponder((status, message))
     }
 }

@@ -73,11 +73,44 @@ fn on_msg_util(_server_handler: &mut ServerHandler, ws_data: WsData) {
                 match insert_player(&pool, player_str) {
                     Ok(()) => println!("插入成功！新玩家数据:{}", &ws_data.data),
                     Err(_err) => {
-                        println!("插入失败！更新玩家数据:{}", &ws_data.data);
+                        println!("插入失败！返回云端玩家数据:{}", &ws_data.data);
+
                         if let Ok(player_str) = serde_json::from_str::<Player>(&ws_data.data) {
                             match update_player(&pool, player_str) {
-                                Ok(()) => println!("成功更新玩家数据:{}", &ws_data.data),
+                                Ok(()) => {
+                                    println!("成功更新玩家数据:{}", &ws_data.data)
+                                }
                                 Err(_err) => println!("更新玩家数据失败:{}", &ws_data.data),
+                            }
+                        }
+
+                        if let Ok(player_str) = serde_json::from_str::<Player>(&ws_data.data) {
+                            match getplayerpermissions(&pool,&player_str.pl_name) {
+                                Ok(Some(player)) => {
+                                    let json_string = serde_json::to_string(&player).unwrap();
+                                    to_send_chat_bds(
+                                        _server_handler.connections.clone(),
+                                        "updata".to_owned(),
+                                        "null".to_owned(),
+                                        json_string,
+                                    )
+                                }
+                                Ok(None) => {
+                                    to_send_chat_bds(
+                                        _server_handler.connections.clone(),
+                                        "updata".to_owned(),
+                                        "null".to_owned(),
+                                        "null".to_owned(),
+                                    )
+                                }
+                                Err(_err) => {
+                                    to_send_chat_bds(
+                                        _server_handler.connections.clone(),
+                                        "updata".to_owned(),
+                                        "null".to_owned(),
+                                        "null".to_owned(),
+                                    )
+                                }
                             }
                         }
                     }
@@ -87,7 +120,7 @@ fn on_msg_util(_server_handler: &mut ServerHandler, ws_data: WsData) {
                 let _ = _server_handler.out.close(ws::CloseCode::Other(404));
             }
         }
-        "onLeft_player" => {
+        "updata" => {
             // 玩家退出游戏
             let pool: mysql::Pool = POOL
                 .lock()

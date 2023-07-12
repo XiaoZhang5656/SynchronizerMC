@@ -162,7 +162,6 @@ async fn start_http_server(config: Config){
             .merge(("port", config.http_port));
         let _ = rocket::custom(config)
             .mount("/getpermissions", routes![getpermissions])
-            .mount("/getinformation", routes![getinformation])
             .mount("/getMessageauthority", routes![get_messageauthority])
             .mount("/getLoginChat", routes![get_login_chat])
             .mount("/getplayerall", routes![getplayerall])
