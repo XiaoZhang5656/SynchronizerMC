@@ -76,8 +76,8 @@ pub fn get_login_chat(user_data: String) -> HttpGetResponder {
     match from_str::<UserDatas>(&user_data) {
         Ok(data) => {
             name = data.name;
-            pws = data.t;
-            t = data.pws;
+            pws = data.token;
+            t = data.t;
         }
         Err(err) => eprintln!("Failed to parse JSON: {}", err),
     }
@@ -100,23 +100,35 @@ pub fn get_login_chat(user_data: String) -> HttpGetResponder {
             Ok(Some(_player)) => {
                 let json_data = serde_json::to_string(&_player).unwrap();
                 let status = Status::Ok;
-                let message = json_data;
+                let message = serde_json::to_string(&Response {
+                    message: json_data
+                })
+                .unwrap();
                 HttpGetResponder((status, message))
             }
             Ok(None) => {
                 let status = Status::Forbidden;
-                let message = "false".to_string();
+                let message = serde_json::to_string(&Response {
+                    message: "null".to_string(),
+                })
+                .unwrap();
                 HttpGetResponder((status, message))
             }
             Err(_err) => {
                 let status = Status::NotFound;
-                let message = "false".to_string();
+                let message = serde_json::to_string(&Response {
+                    message: "null".to_string(),
+                })
+                .unwrap();
                 HttpGetResponder((status, message))
             }
         }
     } else {
         let status = Status::NotFound;
-        let message = "false".to_string();
+        let message = serde_json::to_string(&Response {
+            message: "false".to_string(),
+        })
+        .unwrap();
         HttpGetResponder((status, message))
     }
 }
@@ -125,34 +137,40 @@ pub fn get_login_chat(user_data: String) -> HttpGetResponder {
 #[derive(Debug, Deserialize)]
 struct UserDatas {
     name: String,
-    pws: String,
+    token: String,
     t: String,
+}
+#[derive(Debug, Deserialize)]
+struct UserData {
+    name: String,
+    t: u32,
+    token: String,
 }
 #[post("/", format = "application/json", data = "<user_data>")]
 pub fn getplayerall(user_data: String) -> HttpGetResponder {
-    println!("getplayerall: {}", user_data);
+    println!("getplayerall: {}", user_data);//
     let mut name = String::new();
     let mut t = String::new();
-    let mut pws = String::new();
+    let mut token = String::new();
 
     // 解析数据
-    match from_str::<UserDatas>(&user_data) {
+    match from_str::<UserData>(&user_data) {
         Ok(data) => {
             name = data.name;
-            t = data.t;
-            pws = data.pws;
+            t = data.t.to_string();
+            token = data.token;
         }
         Err(err) => eprintln!("Failed to parse JSON: {}", err),
     }
 
     println!("name: {}", name);
     println!("t: {}", t);
-    println!("pws: {}", pws);
+    println!("token: {}", token);
 
-    let md5pws = decrypt_name_t(name.clone(), t.clone());
+    let md5pws = decrypt_name_t(name.clone(), token.clone());
     println!("正确密钥： {},{}", md5pws, t.clone());
 
-    if md5pws == pws {
+    if md5pws == t {
         let pool: mysql::Pool = POOL
             .lock()
             .unwrap()
@@ -164,18 +182,27 @@ pub fn getplayerall(user_data: String) -> HttpGetResponder {
             Ok(Some(players)) => {
                 let json_data = serde_json::to_string(&players).unwrap();
                 let status = Status::Ok;
-                let message = json_data;
+                let message = serde_json::to_string(&Response {
+                    message: json_data,
+                })
+                .unwrap();
                 HttpGetResponder((status, message))
             }
             _ => {
                 let status = Status::Forbidden;
-                let message = "false".to_string();
+                let message = serde_json::to_string(&Response {
+                    message: "null".to_string(),
+                })
+                .unwrap();
                 HttpGetResponder((status, message))
             }
         }
     } else {
         let status = Status::NotFound;
-        let message = "false".to_string();
+        let message = serde_json::to_string(&Response {
+            message: "false".to_string(),
+        })
+        .unwrap();
         HttpGetResponder((status, message))
     }
 }
