@@ -60,7 +60,7 @@ pub struct JsonResponse {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Players {
-    pub players: Vec<String>,
+    pub players: Vec<Player>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

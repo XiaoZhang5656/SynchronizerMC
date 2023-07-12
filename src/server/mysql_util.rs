@@ -147,9 +147,8 @@ pub fn get_playerspermissions(pool: &mysql::Pool) ->  mysql::Result<Option<Playe
             pl_device: row.get("pl_device").unwrap(),
             permission_name: row.get("permission_name").unwrap(),
         };
-        let json_string = serde_json::to_string(&player).unwrap();
-        println!("{}",json_string);
-        players.push(json_string);
+        // let json_string = serde_json::to_string(&player).unwrap();
+        players.push(player);
     }
 
     if players.is_empty() {

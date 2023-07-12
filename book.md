@@ -19,8 +19,26 @@
 ```json
 {
     "players": [
-        "{\"pl_xuid\":\"13213\",\"pl_name\":\"xiao\",\"pl_llmoney\":2222,\"pl_ip\":\"127.0.0.1\",\"pl_online\":\"true\",\"pl_server_name\":\"零\",\"pl_device\":\"android\",\"permission_name\":\"bds\"}",
-        "{\"pl_xuid\":\"2535447156610197\",\"pl_name\":\"banchen21\",\"pl_llmoney\":18889699,\"pl_ip\":\"127.0.0.1:19137\",\"pl_online\":\"true\",\"pl_server_name\":\"天台一号\",\"pl_device\":\"Win10\",\"permission_name\":\"bds\"}"
+        {
+            "pl_xuid": "13213",
+            "pl_name": "xiao",
+            "pl_llmoney": 2222,
+            "pl_ip": "127.0.0.1",
+            "pl_online": "true",
+            "pl_server_name": "零",
+            "pl_device": "android",
+            "permission_name": "bds"
+        },
+        {
+            "pl_xuid": "2535447156610197",
+            "pl_name": "banchen21",
+            "pl_llmoney": 18889699,
+            "pl_ip": "127.0.0.1:19137",
+            "pl_online": "true",
+            "pl_server_name": "天台一号",
+            "pl_device": "Win10",
+            "permission_name": "bds"
+        }
     ]
 }
 ```
