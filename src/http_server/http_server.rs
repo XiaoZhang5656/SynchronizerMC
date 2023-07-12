@@ -70,9 +70,20 @@ pub fn getpermissions(name: Option<String>) -> HttpGetResponder {
 )]
 pub fn get_messageauthority(user_data: String) -> HttpGetResponder {
     //getMessageauthority
+    
 
-    // 在这里处理解析成功的逻辑
-    let name = &user_data;
+    let mut name = String::new();
+
+    println!("get_login_chat接受参数： {}", user_data);
+
+    // 解析数据
+    match from_str::<UserDatas>(&user_data) {
+        Ok(data) => {
+            name = data.name;
+        }
+        Err(err) => eprintln!("Failed to parse JSON: {}", err),
+    }
+
     let pool = POOL
         .lock()
         .unwrap()

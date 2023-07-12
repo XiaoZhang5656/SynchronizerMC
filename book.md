@@ -62,8 +62,12 @@ application/x-www-form-urlencoded
 application/x-www-form-urlencoded
  ```
   请求体
-```
-banchen21
+```json
+{
+    "name": "banchen21",
+    "t": "null",
+    "pws": "null"
+}
 ```
  返回内容
 ```
