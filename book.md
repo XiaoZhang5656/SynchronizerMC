@@ -11,7 +11,7 @@
 ```json
 {
     "name": "banchen21",
-    "pws": "11ce903d1c5ed3dfe86d6841bd40b30d",
+    "token": "11ce903d1c5ed3dfe86d6841bd40b30d",
     "t": "99973077"
 }
 ```
