@@ -82,7 +82,7 @@ pub fn get_login_chat(user_data: String) -> HttpGetResponder {
 
     println!("name: {}", name);
     println!("t: {}", t);
-    println!("pws: {}", token);
+    println!("token: {}", token);
 
     let md5pws = decrypt_name_t(name.to_owned(), t.to_owned());
     let pool = POOL
@@ -102,7 +102,7 @@ pub fn get_login_chat(user_data: String) -> HttpGetResponder {
                 HttpGetResponder((status, message))
             }
             Ok(None) => {
-                let status = Status::Forbidden;
+                let status = Status::NotFound;
                 let message = serde_json::to_string(&Response {
                     message: "null".to_string(),
                 })
@@ -110,7 +110,7 @@ pub fn get_login_chat(user_data: String) -> HttpGetResponder {
                 HttpGetResponder((status, message))
             }
             Err(_err) => {
-                let status = Status::Forbidden;
+                let status = Status::InternalServerError;
                 let message = serde_json::to_string(&Response {
                     message: "null".to_string(),
                 })
@@ -119,7 +119,7 @@ pub fn get_login_chat(user_data: String) -> HttpGetResponder {
             }
         }
     } else {
-        let status = Status::NotFound;
+        let status = Status::Forbidden;
         let message = serde_json::to_string(&Response {
             message: "false".to_string(),
         })
@@ -156,24 +156,40 @@ pub fn getplayerall(user_data: String) -> HttpGetResponder {
     println!("token: {}", token);
     let md5pws = decrypt_name_t(name.clone(), t.clone());
     println!("正确密钥： {},{}", md5pws, t.clone());
-
+    let pool: mysql::Pool = POOL
+        .lock()
+        .unwrap()
+        .as_ref()
+        .expect("Pool not initialized")
+        .clone();
     if md5pws == token {
-        let pool: mysql::Pool = POOL
-            .lock()
-            .unwrap()
-            .as_ref()
-            .expect("Pool not initialized")
-            .clone();
-        // 调用函数获取玩家权限信息
-        match get_playerspermissions(&pool) {
-            Ok(Some(players)) => {
-                let json_data = serde_json::to_string(&players).unwrap();
-                let status = Status::Ok;
-                let message =json_data;
+        match getplayerpermissions(&pool, &name) {
+            Ok(Some(_player)) => match get_playerspermissions(&pool) {
+                Ok(Some(players)) => {
+                    let json_data = serde_json::to_string(&players).unwrap();
+                    let status = Status::Ok;
+                    let message = json_data;
+                    HttpGetResponder((status, message))
+                }
+                _ => {
+                    let status = Status::Forbidden;
+                    let message = serde_json::to_string(&Response {
+                        message: "null".to_string(),
+                    })
+                    .unwrap();
+                    HttpGetResponder((status, message))
+                }
+            },
+            Ok(None) => {
+                let status = Status::NotFound;
+                let message = serde_json::to_string(&Response {
+                    message: "null".to_string(),
+                })
+                .unwrap();
                 HttpGetResponder((status, message))
             }
-            _ => {
-                let status = Status::Forbidden;
+            Err(_err) => {
+                let status = Status::InternalServerError;
                 let message = serde_json::to_string(&Response {
                     message: "null".to_string(),
                 })
@@ -181,8 +197,9 @@ pub fn getplayerall(user_data: String) -> HttpGetResponder {
                 HttpGetResponder((status, message))
             }
         }
+        // 调用函数获取玩家权限信息
     } else {
-        let status = Status::NotFound;
+        let status = Status::Forbidden;
         let message = serde_json::to_string(&Response {
             message: "false".to_string(),
         })

@@ -12,8 +12,9 @@
   - name：玩家名称
 - 响应：
   - 200 OK：成功，返回玩家权限信息
-  - 404 Not Found：未找到玩家权限信息
-  - 其他错误状态码
+    - 响应体：`{"message":"bds"}`
+  - 404 Not Found：资源不存在
+    - 响应体：`{"message":"null"}`
 ---
 ### `POST /getLoginChat`
 
@@ -22,8 +23,8 @@
 - 请求体参数：
 ```json
 {
-    "name": "banchen20",
-    "token": "0ff04d57217e99641670e20d58a88c62",
+    "name": "banchen21",
+    "token": "65f254760c19ef38a9e808478fcef633",
     "t": "99973077"
 }
 ```
@@ -41,16 +42,17 @@
     "pl_server_name": "天台一号",
     "pl_device": "Win10",
     "permission_name": "bds"
-}
+    }
     ```
-  - 玩家验证失败：
-    - 状态码：404 Not Found
+
+  - 验证失败：
+    - 状态码：403 Forbidden
     - 响应体：`{"message": "false"}`
-  - 未找到玩家权限信息：
-    - 状态码：403 Forbidden
+  - 未找到玩家登录信息：
+    - 状态码：404 Not Found
     - 响应体：`{"message": "null"}`
-  - 其他错误：
-    - 状态码：403 Forbidden
+  - 服务端无法处理这种未知错误：
+    - 状态码：500 Internal Server Error
     - 响应体：`{"message": "null"}`
 ---
 ### `POST /getplayerall`
@@ -90,20 +92,18 @@
             "permission_name": "bds"
         }
     ]
-}
+    }
     ```
-  - 403 Forbidden : 客户端权限不足
-  - 404 Not Found：密钥验证失败
-  - 其他错误状态码
+  - 验证失败：
+    - 状态码：403 Forbidden
+    - 响应体：`{"message": "false"}`
+  - 未找到玩家登录信息：
+    - 状态码：404 Not Found
+    - 响应体：`{"message": "null"}`
+  - 服务端无法处理这种未知错误：
+    - 状态码：500 Internal Server Error
+    - 响应体：`{"message": "null"}`
 
-## 异常处理
-
-### 404 Not Found
-
-当访问的路径不存在时，返回提示信息和文档地址。
-
-- 路径：任意不存在的路径
-- 响应：返回提示信息和文档地址
 
 ## 其他说明
  -POST 请求格式
