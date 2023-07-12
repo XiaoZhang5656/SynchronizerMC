@@ -1,3 +1,4 @@
+use rocket::catchers;
 //rocket框架配置
 use rocket::routes;
 use rocket::Config as OtherConfig;
@@ -165,6 +166,7 @@ async fn start_http_server(config: Config){
             .mount("/getMessageauthority", routes![get_messageauthority])
             .mount("/getLoginChat", routes![get_login_chat])
             .mount("/getplayerall", routes![getplayerall])
+            .register("/", catchers![not_found])
             // .mount("/", routes![index])
             .launch()
             .await;

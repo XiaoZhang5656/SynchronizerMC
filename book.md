@@ -5,7 +5,7 @@
  ```
  Content-Type
 
- application/x-www-form-urlencoded
+ application/json
  ```
  请求体
 ```json
@@ -30,7 +30,7 @@
  ```
  Content-Type
 
-application/x-www-form-urlencoded
+application/json
  ```
  请求体
 ```json
@@ -59,7 +59,7 @@ application/x-www-form-urlencoded
  ```
  Content-Type
 
-application/x-www-form-urlencoded
+application/json
  ```
   请求体
 ```json

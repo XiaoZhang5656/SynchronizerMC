@@ -6,7 +6,7 @@ use crate::{
     yml_util::decrypt_name_t,
 };
 
-use rocket::{get, http::Status, post, Responder};
+use rocket::{get, http::Status, post, Responder, catch};
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
 extern crate crypto;
@@ -65,7 +65,7 @@ pub fn getpermissions(name: Option<String>) -> HttpGetResponder {
 
 #[post(
     "/",
-    format = "application/x-www-form-urlencoded",
+    format = "application/json",
     data = "<user_data>"
 )]
 pub fn get_messageauthority(user_data: String) -> HttpGetResponder {
@@ -113,7 +113,7 @@ pub fn get_messageauthority(user_data: String) -> HttpGetResponder {
 
 #[post(
     "/",
-    format = "application/x-www-form-urlencoded",
+    format = "application/json",
     data = "<user_data>"
 )]
 pub fn get_login_chat(user_data: String) -> HttpGetResponder {
@@ -180,7 +180,7 @@ struct UserDatas {
 }
 #[post(
     "/",
-    format = "application/x-www-form-urlencoded",
+    format = "application/json",
     data = "<user_data>"
 )]
 pub fn getplayerall(user_data: String) -> HttpGetResponder {
@@ -233,7 +233,12 @@ pub fn getplayerall(user_data: String) -> HttpGetResponder {
         HttpGetResponder((status, message))
     }
 }
-
+use rocket::Request;
+#[catch(404)]
+pub fn not_found(req: &Request) ->String{
+    let str="文档地址：https://github.com/banchen19/SynchronizerMC/blob/master/book.md".to_string();
+    format!("Sorry, '{}' is not a valid path.\n{}", req.uri(),str)
+}
 // #[get("/")]
 // pub fn index() -> &'static str {
 //     "接口/getMessageauthority \n"
