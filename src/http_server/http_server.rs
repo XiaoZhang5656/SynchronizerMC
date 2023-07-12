@@ -21,7 +21,7 @@ pub struct Response {
 
 // 获取玩家权限信息
 #[get("/?<name>")]
-pub fn get_messageauthority(name: Option<String>) -> HttpGetResponder {
+pub fn get_permissions(name: Option<String>) -> HttpGetResponder {
     let name = name.unwrap_or_default();
     let pool = POOL
         .lock()

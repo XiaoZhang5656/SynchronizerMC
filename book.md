@@ -2,12 +2,12 @@
 
 ## 接口说明
 
-### `GET /getMessageauthority`
+### `GET /getpermissions`
 
 获取玩家权限信息。
 
 - 请求方式：GET
-- 路径：/getMessageauthority
+- 路径：/getpermissions
 - 参数：
   - name：玩家名称
 - 响应：
@@ -31,6 +31,18 @@
   - 成功：
     - 状态码：200 OK
     - 响应体：包含玩家权限信息的 JSON 字符串
+    ```json
+    {
+    "pl_xuid": "2535447156610197",
+    "pl_name": "banchen21",
+    "pl_llmoney": 18889699,
+    "pl_ip": "127.0.0.1:19137",
+    "pl_online": "true",
+    "pl_server_name": "天台一号",
+    "pl_device": "Win10",
+    "permission_name": "bds"
+}
+    ```
   - 玩家验证失败：
     - 状态码：404 Not Found
     - 响应体：`{"message": "false"}`
@@ -54,6 +66,32 @@
     - token：令牌
 - 响应：
   - 200 OK：成功，返回所有玩家权限信息
+  ```json
+    {
+    "players": [
+        {
+            "pl_xuid": "13213",
+            "pl_name": "xiao",
+            "pl_llmoney": 2222,
+            "pl_ip": "127.0.0.1",
+            "pl_online": "true",
+            "pl_server_name": "零",
+            "pl_device": "android",
+            "permission_name": "bds"
+        },
+        {
+            "pl_xuid": "2535447156610197",
+            "pl_name": "banchen21",
+            "pl_llmoney": 18889699,
+            "pl_ip": "127.0.0.1:19137",
+            "pl_online": "true",
+            "pl_server_name": "天台一号",
+            "pl_device": "Win10",
+            "permission_name": "bds"
+        }
+    ]
+}
+    ```
   - 403 Forbidden : 客户端权限不足
   - 404 Not Found：密钥验证失败
   - 其他错误状态码
@@ -68,7 +106,12 @@
 - 响应：返回提示信息和文档地址
 
 ## 其他说明
+ -POST 请求格式
+ - JSON
 
-- 数据传输格式：JSON
-- 错误处理：根据不同的错误情况返回相应的状态码和消息
-
+-GET 请求格式
+ - 参数
+ - 示例
+```
+http://127.0.0.1:8082/getpermissions?name=banchen21
+```
