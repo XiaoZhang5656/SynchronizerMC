@@ -54,8 +54,8 @@ application/json
 ```json
 {
     "name": "banchen21",
-    "t": "11ce903d1c5ed3dfe86d6841bd40b30d",
-    "token": "99973077"
+    "token": "11ce903d1c5ed3dfe86d6841bd40b30d",
+    "t": "99973077"
 }
 ```
  返回内容

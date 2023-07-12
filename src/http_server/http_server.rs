@@ -67,7 +67,7 @@ pub fn get_messageauthority(name: Option<String>) -> HttpGetResponder {
 #[post("/", format = "application/json", data = "<user_data>")]
 pub fn get_login_chat(user_data: String) -> HttpGetResponder {
     let mut name = String::new();
-    let mut pws = String::new();
+    let mut token = String::new();
     let mut t = String::new();
 
     println!("get_login_chat接受参数： {}", user_data);
@@ -76,7 +76,7 @@ pub fn get_login_chat(user_data: String) -> HttpGetResponder {
     match from_str::<UserDatas>(&user_data) {
         Ok(data) => {
             name = data.name;
-            pws = data.token;
+            token = data.token;
             t = data.t;
         }
         Err(err) => eprintln!("Failed to parse JSON: {}", err),
@@ -84,7 +84,7 @@ pub fn get_login_chat(user_data: String) -> HttpGetResponder {
 
     println!("name: {}", name);
     println!("t: {}", t);
-    println!("pws: {}", pws);
+    println!("pws: {}", token);
 
     let md5pws = decrypt_name_t(name.to_owned(), t.to_owned());
     let pool = POOL
@@ -94,7 +94,7 @@ pub fn get_login_chat(user_data: String) -> HttpGetResponder {
         .expect("Pool not initialized")
         .clone();
     println!("正确密钥： {}", md5pws);
-    if md5pws == pws {
+    if md5pws == token {
         let result = getplayerpermissions(&pool, &name);
         match result {
             Ok(Some(_player)) => {
