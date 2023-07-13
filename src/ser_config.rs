@@ -29,21 +29,22 @@ pub struct Player {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WsData {
     pub(crate)key:String,
+    pub(crate)typestr:String,
     pub(crate)data:String,
-    pub(crate)typestr:String
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct DataChat {
-    pub(crate)player_name:String,
-    pub(crate)chat:String
+pub struct SerToData {
+    pub(crate)player_name: String,
+    pub(crate)perm: String,
+    pub(crate)data: String,
 }
 
+
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Person {
+pub struct SerToChatData {
     pub(crate)typestr: String,
     pub(crate)data: String,
-    pub(crate)perm: String,
 }
 
 #[derive(Debug, Serialize)]

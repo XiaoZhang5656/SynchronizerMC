@@ -1,13 +1,14 @@
 use std::sync::{Arc, Mutex};
 
 use crate::{
-    ser_config::{DataChat, Person, Player, WsData},
+    ser_config::{Player, WsData, SerToChatData, SerToData},
+    server::mysql_util::getplayerInformation,
     POOL,
 };
 use serde_json;
 use ws::{Handler, Handshake, Message, Result};
 
-use super::mysql_util::{getplayerpermissions, insert_player, on_leftupdate_player, update_player};
+use super::mysql_util::{insert_player, on_leftupdate_player, update_player};
 pub(crate) struct ServerHandler {
     pub(crate) out: ws::Sender,
     pub(crate) key: String,
@@ -28,6 +29,7 @@ impl Handler for ServerHandler {
         println!("默认服务器收到消息 '{}'", msg);
 
         if let Ok(ws_data) = serde_json::from_str::<WsData>(msg.as_text().unwrap()) {
+            println!("本地密钥：{}，来访者密钥：{}",self.key,ws_data.key);
             if ws_data.key == self.key {
                 on_msg_util(self, ws_data)
             } else {
@@ -35,7 +37,7 @@ impl Handler for ServerHandler {
                 let _ = self.out.close(ws::CloseCode::Other(404));
             }
         } else {
-            println!("首次无法解析数据，自动断开'{:p}'", &self.out);
+            println!("初次无法解析数据，自动断开'{:p}'", &self.out);
             let _ = self.out.close(ws::CloseCode::Other(404));
         }
 
@@ -53,16 +55,15 @@ fn on_msg_util(_server_handler: &mut ServerHandler, ws_data: WsData) {
     let typestr = ws_data.typestr;
     match typestr.as_str() {
         "chat" => {
-            if let Ok(ws_data) = serde_json::from_str::<DataChat>(&ws_data.data) {
-                on_chat(_server_handler, ws_data)
+            if let Ok(ser_todata) = serde_json::from_str::<SerToData>(&ws_data.data) {
+                on_chat(_server_handler, ser_todata)
             } else {
-                println!("无法解析消息，自动断开'{:p}'", &_server_handler.out);
+                println!("无法解析chat类型消息，自动断开'{:p}'", &_server_handler.out);
                 let _ = _server_handler.out.close(ws::CloseCode::Other(404));
             }
         }
         "onJoin_player" => {
             // 玩家加入游戏
-
             if let Ok(player_str) = serde_json::from_str::<Player>(&ws_data.data) {
                 let pool: mysql::Pool = POOL
                     .lock()
@@ -85,31 +86,20 @@ fn on_msg_util(_server_handler: &mut ServerHandler, ws_data: WsData) {
                         }
 
                         if let Ok(player_str) = serde_json::from_str::<Player>(&ws_data.data) {
-                            match getplayerpermissions(&pool,&player_str.pl_name) {
+                            match getplayerInformation(&pool, &player_str.pl_name) {
                                 Ok(Some(player)) => {
                                     let json_string = serde_json::to_string(&player).unwrap();
-                                    to_send_chat_bds(
-                                        _server_handler.connections.clone(),
-                                        "updata".to_owned(),
-                                        "null".to_owned(),
-                                        json_string,
-                                    )
+                                    let chatdata = SerToChatData {
+                                        typestr:"updata".to_owned(),
+                                        data: json_string,
+                                    };
+                                    to_send_chat_bds(_server_handler.connections.clone(), chatdata)
                                 }
                                 Ok(None) => {
-                                    to_send_chat_bds(
-                                        _server_handler.connections.clone(),
-                                        "updata".to_owned(),
-                                        "null".to_owned(),
-                                        "null".to_owned(),
-                                    )
+                                    println!("无法返回数据给，值为None，如不影响游戏可忽略")
                                 }
                                 Err(_err) => {
-                                    to_send_chat_bds(
-                                        _server_handler.connections.clone(),
-                                        "updata".to_owned(),
-                                        "null".to_owned(),
-                                        "null".to_owned(),
-                                    )
+                                    println!("未知错误，如不影响游戏可忽略")
                                 }
                             }
                         }
@@ -144,48 +134,32 @@ fn on_msg_util(_server_handler: &mut ServerHandler, ws_data: WsData) {
     }
 }
 
-fn on_chat(_server_handler: &mut ServerHandler, _datachat: DataChat) {
+fn on_chat(_server_handler: &mut ServerHandler, chat_data: SerToData) {
     let pool: mysql::Pool = POOL
         .lock()
         .unwrap()
         .as_ref()
         .expect("Pool not initialized")
         .clone();
-    match getplayerpermissions(&pool, &_datachat.player_name) {
-        Ok(Some(player)) => to_send_chat_bds(
-            _server_handler.connections.clone(),
-            "chat".to_owned(),
-            player.permission_name,
-            _datachat.chat,
-        ),
-        Ok(None) => to_send_chat_bds(
-            _server_handler.connections.clone(),
-            "chat".to_owned(),
-            "null".to_owned(),
-            _datachat.chat,
-        ),
-        Err(_err) => to_send_chat_bds(
-            _server_handler.connections.clone(),
-            "chat".to_owned(),
-            "null".to_owned(),
-            _datachat.chat,
-        ),
+    match getplayerInformation(&pool, &chat_data.player_name) {
+        Ok(Some(player)) => {
+            let json_data = serde_json::to_string(&chat_data).unwrap();
+            let ser_to_chat_data = SerToChatData {
+                data:json_data,
+                typestr:"chat".to_owned()
+            };
+            to_send_chat_bds(_server_handler.connections.clone(), ser_to_chat_data)
+        }
+        Ok(None) => {
+        }
+        Err(_err) => {
+        }
     }
 }
-fn to_send_chat_bds(
-    connections: Arc<Mutex<Vec<ws::Sender>>>,
-    typestra: String,
-    perm: String,
-    msg: String,
-) {
-    let person = Person {
-        typestr: typestra,
-        perm,
-        data: msg,
-    };
+fn to_send_chat_bds(connections: Arc<Mutex<Vec<ws::Sender>>>, ser_to_chat_data: SerToChatData) {
     let connections = connections.lock().unwrap();
     for sender in connections.iter() {
-        let json_string = serde_json::to_string(&person).unwrap();
+        let json_string = serde_json::to_string(&ser_to_chat_data).unwrap();
         println!("玩家发送消息chat类型分布消息： {}", json_string);
         if let Err(err) = sender.send(json_string) {
             println!("玩家发送消息发送消息失败: {:?}", err);

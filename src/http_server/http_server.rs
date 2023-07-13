@@ -6,7 +6,7 @@ use std::{
 use crate::{
     ser_config::{UserData, UserDataPerm},
     server::mysql_util::{
-        delete_perm, get_playerspermissions, getplayerpermission_grade, getplayerpermissions,
+        delete_perm, get_playerspermissions, getplayerpermission_grade, getplayerInformation,
         insert_perm, update_perm,
     },
     yml_util::decrypt_name_t,
@@ -42,7 +42,7 @@ pub fn get_permissions(name: Option<String>) -> HttpGetResponder {
 
     println!("name: {}", name);
 
-    let result = getplayerpermissions(&pool, &name);
+    let result = getplayerInformation(&pool, &name);
     match result {
         Ok(Some(_player)) => {
             let status = Status::Ok;
@@ -93,13 +93,17 @@ pub fn get_login_chat(user_data: String) -> HttpGetResponder {
         .expect("Pool not initialized")
         .clone();
     println!("正确密钥： {}", md5pws);
-    let t_timestamp = t.parse::<u64>().expect("Failed to parse timestamp");
+    let t_timestamp = t.parse::<u128>().expect("Failed to parse timestamp");
     let current_timestamp = getnewcurrent_timestamp();
+    println!("服务端时间戳：{}", current_timestamp);
+    println!("客户端端时间戳：{}", t_timestamp);
     let time_difference = current_timestamp - t_timestamp;
+    println!("时间差：{}", time_difference);
+
     if time_difference >= 60 {
         null_401_http_get_responder()
     } else if md5pws == token {
-        let result = getplayerpermissions(&pool, &name);
+        let result = getplayerInformation(&pool, &name);
         match result {
             Ok(Some(_player)) => {
                 let json_data = serde_json::to_string(&_player).unwrap();
@@ -108,15 +112,7 @@ pub fn get_login_chat(user_data: String) -> HttpGetResponder {
                 HttpGetResponder((status, message))
             }
             Ok(None) => null_404_http_get_responder(),
-            Err(_err) => {
-                let status = Status::InternalServerError;
-                let message = serde_json::to_string(&Response {
-                    code: 500,
-                    message: "error".to_string(),
-                })
-                .unwrap();
-                HttpGetResponder((status, message))
-            }
+            Err(_err) => null_500_http_get_responder(),
         }
     } else {
         let status = Status::Forbidden;
@@ -157,13 +153,13 @@ pub fn getplayerall(user_data: String) -> HttpGetResponder {
         .as_ref()
         .expect("Pool not initialized")
         .clone();
-    let t_timestamp = t.parse::<u64>().expect("Failed to parse timestamp");
+    let t_timestamp = t.parse::<u128>().expect("Failed to parse timestamp");
     let current_timestamp = getnewcurrent_timestamp();
     let time_difference = current_timestamp - t_timestamp;
     if time_difference >= 60 {
         null_401_http_get_responder()
     } else if md5pws == token {
-        match getplayerpermissions(&pool, &name) {
+        match getplayerInformation(&pool, &name) {
             Ok(Some(_player)) => match get_playerspermissions(&pool) {
                 Ok(Some(players)) => {
                     let json_data = serde_json::to_string(&players).unwrap();
@@ -238,7 +234,7 @@ pub fn perm_mg(user_data: String) -> HttpGetResponder {
         .as_ref()
         .expect("Pool not initialized")
         .clone();
-    let t_timestamp = t.parse::<u64>().expect("Failed to parse timestamp");
+    let t_timestamp = t.parse::<u128>().expect("Failed to parse timestamp");
 
     let time_difference = current_timestamp - t_timestamp;
     if time_difference >= 60 {
@@ -330,15 +326,16 @@ pub fn null_401_http_get_responder() -> HttpGetResponder {
 #[catch(404)]
 pub fn not_found(req: &Request) -> String {
     let str =
-        "文档地址：https://github.com/banchen19/SynchronizerMC/blob/master/book.md".to_string();
-    format!("Sorry, '{}' is not a valid path.\n{}", req.uri(), str)
+        "默认  文档地址：https://github.com/banchen19/SynchronizerMC/blob/master/book.md".to_string();
+    format!("Sorry, \n'{}' is not a valid path.\n{}", req.uri(), str)
 }
 
-fn getnewcurrent_timestamp() -> u64 {
-    return SystemTime::now()
+fn getnewcurrent_timestamp() -> u128 {
+    let time = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .expect("Failed to get current timestamp")
-        .as_secs() as u64;
+        .unwrap()
+        .as_millis() as u128;
+    time
 }
 // #[get("/")]
 // pub fn index() -> &'static str {

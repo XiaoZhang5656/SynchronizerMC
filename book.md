@@ -159,20 +159,19 @@ http://127.0.0.1:8082/getpermissions?name=banchen21
 #### 消息发送格式
 ```json
 {
-    key:"密钥",
-    typestr:"chat",
-    data:{
-        player_name:"玩家名",
-        chat:"要广播到所有子服的消息"
-    }
+    "key":"密钥",
+    "typestr":"chat",
+    "data":"{
+        "player_name":"玩家名",
+        "perm":"null"
+        "chat":"要广播到所有子服的消息"
+    }"
 }
 ```
 #### 消息接受格式
  ```json
  {
-    typestr:"chat",
-    perm:"消息发送者的权限名"//默认 bds
-    data:"接收到消息"
+    "typestr":"chat",
+    "data":""
  }
- ```
  ---

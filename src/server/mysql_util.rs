@@ -70,7 +70,7 @@ pub fn insert_player(pool: &mysql::Pool, player: Player) -> mysql::Result<()> {
     )
 }
 
-pub fn getplayerpermissions(pool: &mysql::Pool, name: &str) -> mysql::Result<Option<Player>> {
+pub fn getplayerInformation(pool: &mysql::Pool, name: &str) -> mysql::Result<Option<Player>> {
     let mut conn = pool.get_conn()?;
     let res = conn
         .exec_first(
