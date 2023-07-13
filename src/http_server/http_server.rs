@@ -172,7 +172,7 @@ pub fn getplayerall(user_data: String) -> HttpGetResponder {
                     HttpGetResponder((status, message))
                 }
                 _ => {
-                    let status = Status::Forbidden;
+                    let status = Status::NotFound;
                     let message = serde_json::to_string(&Response {
                         message: "null".to_string(),
                     })
