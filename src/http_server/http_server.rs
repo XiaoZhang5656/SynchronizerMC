@@ -94,10 +94,7 @@ pub fn get_login_chat(user_data: String) -> HttpGetResponder {
         .clone();
     println!("正确密钥： {}", md5pws);
     let t_timestamp = t.parse::<u64>().expect("Failed to parse timestamp");
-    let current_timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("Failed to get current timestamp")
-        .as_secs() as u64;
+    let current_timestamp = getnewcurrent_timestamp();
     let time_difference = current_timestamp - t_timestamp;
     if time_difference >= 60 {
         null_401_http_get_responder()
@@ -161,10 +158,7 @@ pub fn getplayerall(user_data: String) -> HttpGetResponder {
         .expect("Pool not initialized")
         .clone();
     let t_timestamp = t.parse::<u64>().expect("Failed to parse timestamp");
-    let current_timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("Failed to get current timestamp")
-        .as_secs() as u64;
+    let current_timestamp = getnewcurrent_timestamp();
     let time_difference = current_timestamp - t_timestamp;
     if time_difference >= 60 {
         null_401_http_get_responder()
@@ -231,10 +225,7 @@ pub fn perm_mg(user_data: String) -> HttpGetResponder {
         }
         Err(err) => eprintln!("Failed to parse JSON: {}", err),
     }
-    let current_timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("Failed to get current timestamp")
-        .as_secs();
+    let current_timestamp = getnewcurrent_timestamp();
 
     println!("name: {}", name);
     println!("t: {}", t);
@@ -341,6 +332,13 @@ pub fn not_found(req: &Request) -> String {
     let str =
         "文档地址：https://github.com/banchen19/SynchronizerMC/blob/master/book.md".to_string();
     format!("Sorry, '{}' is not a valid path.\n{}", req.uri(), str)
+}
+
+fn getnewcurrent_timestamp() -> u64 {
+    return SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("Failed to get current timestamp")
+        .as_secs() as u64;
 }
 // #[get("/")]
 // pub fn index() -> &'static str {

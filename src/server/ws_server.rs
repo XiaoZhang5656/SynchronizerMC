@@ -151,7 +151,7 @@ fn on_chat(_server_handler: &mut ServerHandler, _datachat: DataChat) {
         .as_ref()
         .expect("Pool not initialized")
         .clone();
-    match getplayerpermissions(&pool, &_datachat.player) {
+    match getplayerpermissions(&pool, &_datachat.player_name) {
         Ok(Some(player)) => to_send_chat_bds(
             _server_handler.connections.clone(),
             "chat".to_owned(),
