@@ -1,5 +1,11 @@
+use std::f32::consts::E;
+
 use crate::{
-    server::mysql_util::{get_playerspermissions, getplayerpermissions},
+    ser_config::{UserData, UserDataPerm},
+    server::mysql_util::{
+        delete_perm, get_playerspermissions, getplayerpermission_grade, getplayerpermissions,
+        insert_perm, update_perm,
+    },
     yml_util::decrypt_name_t,
 };
 
@@ -16,6 +22,7 @@ use crate::POOL;
 pub struct HttpGetResponder((rocket::http::Status, String));
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Response {
+    code: u32,
     message: String,
 }
 
@@ -37,26 +44,17 @@ pub fn get_permissions(name: Option<String>) -> HttpGetResponder {
         Ok(Some(_player)) => {
             let status = Status::Ok;
             let message = serde_json::to_string(&Response {
+                code: 200,
                 message: _player.permission_name,
             })
             .unwrap();
             return HttpGetResponder((status, message));
         }
         Ok(None) => {
-            let status = Status::NotFound;
-            let message = serde_json::to_string(&Response {
-                message: "null".to_string(),
-            })
-            .unwrap();
-            return HttpGetResponder((status, message));
+            return null_404_http_get_responder();
         }
         Err(_err) => {
-            let status = Status::NotFound;
-            let message = serde_json::to_string(&Response {
-                message: "null".to_string(),
-            })
-            .unwrap();
-            return HttpGetResponder((status, message));
+            return null_404_http_get_responder();
         }
     }
 }
@@ -101,18 +99,12 @@ pub fn get_login_chat(user_data: String) -> HttpGetResponder {
                 let message = json_data;
                 HttpGetResponder((status, message))
             }
-            Ok(None) => {
-                let status = Status::NotFound;
-                let message = serde_json::to_string(&Response {
-                    message: "null".to_string(),
-                })
-                .unwrap();
-                HttpGetResponder((status, message))
-            }
+            Ok(None) => null_404_http_get_responder(),
             Err(_err) => {
                 let status = Status::InternalServerError;
                 let message = serde_json::to_string(&Response {
-                    message: "null".to_string(),
+                    code: 500,
+                    message: "error".to_string(),
                 })
                 .unwrap();
                 HttpGetResponder((status, message))
@@ -121,6 +113,7 @@ pub fn get_login_chat(user_data: String) -> HttpGetResponder {
     } else {
         let status = Status::Forbidden;
         let message = serde_json::to_string(&Response {
+            code: 403,
             message: "false".to_string(),
         })
         .unwrap();
@@ -128,12 +121,6 @@ pub fn get_login_chat(user_data: String) -> HttpGetResponder {
     }
 }
 
-#[derive(Debug, Deserialize)]
-struct UserData {
-    name: String,
-    t: String,
-    token: String,
-}
 #[post("/", format = "application/json", data = "<user_data>")]
 pub fn getplayerall(user_data: String) -> HttpGetResponder {
     println!("getplayerall: {}", user_data); //
@@ -174,24 +161,19 @@ pub fn getplayerall(user_data: String) -> HttpGetResponder {
                 _ => {
                     let status = Status::NotFound;
                     let message = serde_json::to_string(&Response {
+                        code: 404,
                         message: "null".to_string(),
                     })
                     .unwrap();
                     HttpGetResponder((status, message))
                 }
             },
-            Ok(None) => {
-                let status = Status::NotFound;
-                let message = serde_json::to_string(&Response {
-                    message: "null".to_string(),
-                })
-                .unwrap();
-                HttpGetResponder((status, message))
-            }
+            Ok(None) => null_404_http_get_responder(),
             Err(_err) => {
                 let status = Status::InternalServerError;
                 let message = serde_json::to_string(&Response {
-                    message: "null".to_string(),
+                    code: 500,
+                    message: "error".to_string(),
                 })
                 .unwrap();
                 HttpGetResponder((status, message))
@@ -201,6 +183,7 @@ pub fn getplayerall(user_data: String) -> HttpGetResponder {
     } else {
         let status = Status::Forbidden;
         let message = serde_json::to_string(&Response {
+            code: 403,
             message: "false".to_string(),
         })
         .unwrap();
@@ -208,13 +191,120 @@ pub fn getplayerall(user_data: String) -> HttpGetResponder {
     }
 }
 
+// ***************************************************************权限处理
+#[post("/", format = "application/json", data = "<user_data>")]
+pub fn perm_mg(user_data: String) -> HttpGetResponder {
+    println!("getplayerall: {}", user_data); //
+    let mut name = String::new();
+    let mut t = String::new();
+    let mut token = String::new();
+    let mut typestr = String::new();
+    let mut perm_int: u128 = 0;
+
+    // 解析数据
+    match from_str::<UserDataPerm>(&user_data) {
+        Ok(data) => {
+            name = data.name;
+            t = data.t;
+            token = data.token;
+            typestr = data.typestr;
+            perm_int = data.perm_int;
+        }
+        Err(err) => eprintln!("Failed to parse JSON: {}", err),
+    }
+
+    println!("name: {}", name);
+    println!("t: {}", t);
+    println!("token: {}", token);
+    let md5pws = decrypt_name_t(name.clone(), t.clone());
+    println!("正确密钥： {},{}", md5pws, t.clone());
+    let pool: mysql::Pool = POOL
+        .lock()
+        .unwrap()
+        .as_ref()
+        .expect("Pool not initialized")
+        .clone();
+    if md5pws == token {
+        match getplayerpermission_grade(&pool, &name) {
+            Ok(Some(perm_player_int)) => {
+                if perm_int < perm_player_int {
+                    return perm_type_mg(&pool, typestr, user_data);
+                } else {
+                    return null_403_http_get_responder();
+                }
+            }
+            Ok(None) => return null_404_http_get_responder(),
+            Err(_err) => return null_500_http_get_responder(),
+        }
+        // 调用函数获取玩家权限信息
+    } else {
+        null_403_http_get_responder()
+    }
+}
+
+fn perm_type_mg(pool: &mysql::Pool, typestr: String, user_data: String) -> HttpGetResponder {
+    match from_str::<UserDataPerm>(&user_data) {
+        Ok(data) => match typestr.as_str() {
+            "add" => match insert_perm(&pool, data) {
+                Ok(_) => null_200_http_get_responder(),
+                Err(_) => null_500_http_get_responder(),
+            },
+            "delete" => match delete_perm(&pool, data) {
+                Ok(_) => null_200_http_get_responder(),
+                Err(_) => null_500_http_get_responder(),
+            },
+            "updata" => match update_perm(&pool, data) {
+                Ok(_) => null_200_http_get_responder(),
+                Err(_) => null_500_http_get_responder(),
+            },
+            _ => null_500_http_get_responder(),
+        },
+        Err(_err) => null_500_http_get_responder(),
+    }
+}
+
+fn null_404_http_get_responder() -> HttpGetResponder {
+    let status = Status::NotFound;
+    let message = serde_json::to_string(&Response {
+        code: 404,
+        message: "null".to_string(),
+    })
+    .unwrap();
+    HttpGetResponder((status, message))
+}
+pub fn null_403_http_get_responder() -> HttpGetResponder {
+    let status = Status::NotFound;
+    let message = serde_json::to_string(&Response {
+        code: 403,
+        message: "false".to_string(),
+    })
+    .unwrap();
+    HttpGetResponder((status, message))
+}
+pub fn null_200_http_get_responder() -> HttpGetResponder {
+    let status = Status::NotFound;
+    let message = serde_json::to_string(&Response {
+        code: 200,
+        message: "true".to_string(),
+    })
+    .unwrap();
+    HttpGetResponder((status, message))
+}
+pub fn null_500_http_get_responder() -> HttpGetResponder {
+    let status = Status::NotFound;
+    let message = serde_json::to_string(&Response {
+        code: 500,
+        message: "error".to_string(),
+    })
+    .unwrap();
+    HttpGetResponder((status, message))
+}
 #[catch(404)]
 pub fn not_found(req: &Request) -> String {
     let str =
         "文档地址：https://github.com/banchen19/SynchronizerMC/blob/master/book.md".to_string();
     format!("Sorry, '{}' is not a valid path.\n{}", req.uri(), str)
 }
-
 // #[get("/")]
 // pub fn index() -> &'static str {
 //     "接口/getMessageauthority \n"

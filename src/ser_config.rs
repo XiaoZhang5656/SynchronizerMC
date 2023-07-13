@@ -1,5 +1,4 @@
 use serde::{Serialize, Deserialize};
-use rocket::response::Responder;
 //放置结构体
 
 // 启动配置文件结构体
@@ -67,4 +66,22 @@ pub struct Players {
 pub struct PermissionMg {
     typestr:String,
     perm_name:String
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UserData {
+    pub(crate)name: String,
+    pub(crate)t: String,
+    pub(crate)token: String,
+}
+
+
+#[derive(Debug, Deserialize)]
+pub struct UserDataPerm {
+    pub(crate)name: String,
+    pub(crate)t: String,
+    pub(crate)token: String,
+    pub(crate)typestr:String,
+    pub(crate)perm_int: u128,
+    pub(crate)perm_str: String,
 }

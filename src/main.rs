@@ -162,6 +162,7 @@ async fn start_http_server(config: Config) {
             .mount("/getpermissions", routes![get_permissions])
             .mount("/getLoginChat", routes![get_login_chat])
             .mount("/getplayerall", routes![getplayerall])
+            .mount("/perm_mg", routes![perm_mg])
             .register("/", catchers![not_found])
             // .mount("/", routes![index])
             .launch()

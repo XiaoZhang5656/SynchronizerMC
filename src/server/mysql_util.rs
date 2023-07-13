@@ -1,8 +1,10 @@
-use std::collections::HashMap;
 
-use mysql::{params, prelude::*, Pool, Value};
+use mysql::{params, prelude::*};
 
-use crate::ser_config::{Player, Players};
+use crate::{
+    http_server::http_server::{null_403_http_get_responder, HttpGetResponder, Response},
+    ser_config::{Player, Players, UserData, UserDataPerm},
+};
 
 pub fn create_tables_with_foreign_key(pool: &mysql::Pool) -> mysql::Result<()> {
     let mut conn = pool.get_conn()?;
@@ -68,8 +70,6 @@ pub fn insert_player(pool: &mysql::Pool, player: Player) -> mysql::Result<()> {
     )
 }
 
-
-
 pub fn getplayerpermissions(pool: &mysql::Pool, name: &str) -> mysql::Result<Option<Player>> {
     let mut conn = pool.get_conn()?;
     let res = conn
@@ -92,31 +92,36 @@ pub fn getplayerpermissions(pool: &mysql::Pool, name: &str) -> mysql::Result<Opt
                 "name" => name,
             },
         )
-        .map(
-            |row|
-             {
-            row.map(|(pl_xuid, pl_name, pl_llmoney, 
-                pl_ip, pl_online,pl_server_name,
-                pl_device,permission_name)| Player {
-                pl_xuid,
-                pl_name,
-                pl_llmoney,
-                pl_ip,
-                pl_online,
-                pl_server_name,
-                pl_device,
-                permission_name
-            })
+        .map(|row| {
+            row.map(
+                |(
+                    pl_xuid,
+                    pl_name,
+                    pl_llmoney,
+                    pl_ip,
+                    pl_online,
+                    pl_server_name,
+                    pl_device,
+                    permission_name,
+                )| Player {
+                    pl_xuid,
+                    pl_name,
+                    pl_llmoney,
+                    pl_ip,
+                    pl_online,
+                    pl_server_name,
+                    pl_device,
+                    permission_name,
+                },
+            )
         });
-        match res {
-            Ok(Some(player)) => Ok(Some(player)),
-            _ => Ok(None),
-        }
+    match res {
+        Ok(Some(player)) => Ok(Some(player)),
+        _ => Ok(None),
+    }
 }
 
-
-
-pub fn get_playerspermissions(pool: &mysql::Pool) ->  mysql::Result<Option<Players>> {
+pub fn get_playerspermissions(pool: &mysql::Pool) -> mysql::Result<Option<Players>> {
     let mut conn = pool.get_conn()?;
     let res = conn.exec_iter(
         "SELECT
@@ -177,6 +182,7 @@ pub fn update_player(pool: &mysql::Pool, player: Player) -> mysql::Result<()> {
     )?;
     Ok(())
 }
+
 pub fn on_leftupdate_player(pool: &mysql::Pool, player: Player) -> mysql::Result<()> {
     let mut conn = pool.get_conn()?;
     conn.exec_drop(
@@ -195,4 +201,80 @@ pub fn on_leftupdate_player(pool: &mysql::Pool, player: Player) -> mysql::Result
         },
     )?;
     Ok(())
+}
+
+// 添加权限
+pub fn insert_perm(pool: &mysql::Pool, user_dataperm: UserDataPerm) -> mysql::Result<()> {
+    let mut conn = pool.get_conn()?;
+    conn.exec_drop(
+        "INSERT INTO tb_permission (
+            permission_id,
+            permission_name
+        ) VALUES (
+            :permission_id,
+            :permission_name
+        )",
+        params! {
+            "permission_id" => user_dataperm.perm_int,
+            "permission_name" => user_dataperm.perm_str,
+        },
+    )?;
+
+    Ok(())
+}
+
+// 删除权限
+pub fn delete_perm(pool: &mysql::Pool, user_dataperm: UserDataPerm) -> mysql::Result<()> {
+    let mut conn = pool.get_conn()?;
+    conn.exec_drop(
+        "DELETE FROM tb_permission
+        WHERE permission_id = :permission_id",
+        params! {
+            "permission_id" => user_dataperm.perm_int,
+        },
+    )?;
+
+    Ok(())
+}
+
+
+pub fn update_perm(pool: &mysql::Pool, user_dataperm: UserDataPerm) -> mysql::Result<()> {
+    let mut conn = pool.get_conn()?;
+    conn.exec_drop(
+        "UPDATE tb_permission SET
+        permission_name = :permission_name
+         WHERE permission_name = :permission_name",
+        params! {
+            "permission_name" => user_dataperm.perm_int,
+        },
+    )?;
+    Ok(())
+}
+
+// 获取玩家权限等级
+pub fn getplayerpermission_grade(pool: &mysql::Pool, name: &str) -> mysql::Result<Option<u128>> {
+    let mut conn = pool.get_conn()?;
+    let res = conn
+        .exec_first(
+            "SELECT
+            pl_permission
+        FROM
+            tb_player
+        WHERE
+            pl_name = :name",
+            params! {
+                "name" => name,
+            },
+        )
+        .map(|row| {
+            row.map(
+                |(pl_permission,)| {
+                    pl_permission
+                },
+            )
+        });
+    match res {
+        Ok(Some(player)) => Ok(Some(player)),
+        _ => Ok(None),
+    }
 }
