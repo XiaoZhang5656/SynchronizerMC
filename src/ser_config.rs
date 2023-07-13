@@ -35,7 +35,7 @@ pub struct WsData {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DataChat {
-    pub(crate)player:String,
+    pub(crate)player_name:String,
     pub(crate)chat:String
 }
 

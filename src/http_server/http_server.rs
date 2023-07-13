@@ -1,4 +1,7 @@
-use std::f32::consts::E;
+use std::{
+    f32::consts::E,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use crate::{
     ser_config::{UserData, UserDataPerm},
@@ -90,7 +93,15 @@ pub fn get_login_chat(user_data: String) -> HttpGetResponder {
         .expect("Pool not initialized")
         .clone();
     println!("正确密钥： {}", md5pws);
-    if md5pws == token {
+    let t_timestamp = t.parse::<u64>().expect("Failed to parse timestamp");
+    let current_timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("Failed to get current timestamp")
+        .as_secs() as u64;
+    let time_difference = current_timestamp - t_timestamp;
+    if time_difference >= 60 {
+        null_401_http_get_responder()
+    } else if md5pws == token {
         let result = getplayerpermissions(&pool, &name);
         match result {
             Ok(Some(_player)) => {
@@ -149,7 +160,15 @@ pub fn getplayerall(user_data: String) -> HttpGetResponder {
         .as_ref()
         .expect("Pool not initialized")
         .clone();
-    if md5pws == token {
+    let t_timestamp = t.parse::<u64>().expect("Failed to parse timestamp");
+    let current_timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("Failed to get current timestamp")
+        .as_secs() as u64;
+    let time_difference = current_timestamp - t_timestamp;
+    if time_difference >= 60 {
+        null_401_http_get_responder()
+    } else if md5pws == token {
         match getplayerpermissions(&pool, &name) {
             Ok(Some(_player)) => match get_playerspermissions(&pool) {
                 Ok(Some(players)) => {
@@ -212,6 +231,10 @@ pub fn perm_mg(user_data: String) -> HttpGetResponder {
         }
         Err(err) => eprintln!("Failed to parse JSON: {}", err),
     }
+    let current_timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("Failed to get current timestamp")
+        .as_secs();
 
     println!("name: {}", name);
     println!("t: {}", t);
@@ -224,7 +247,12 @@ pub fn perm_mg(user_data: String) -> HttpGetResponder {
         .as_ref()
         .expect("Pool not initialized")
         .clone();
-    if md5pws == token {
+    let t_timestamp = t.parse::<u64>().expect("Failed to parse timestamp");
+
+    let time_difference = current_timestamp - t_timestamp;
+    if time_difference >= 60 {
+        null_401_http_get_responder()
+    } else if md5pws == token {
         match getplayerpermission_grade(&pool, &name) {
             Ok(Some(perm_player_int)) => {
                 if perm_int < perm_player_int {
@@ -249,7 +277,7 @@ fn perm_type_mg(pool: &mysql::Pool, typestr: String, user_data: String) -> HttpG
                 Ok(_) => null_200_http_get_responder(),
                 Err(_) => null_500_http_get_responder(),
             },
-            "delete" => match delete_perm(&pool, data) {
+            "remove" => match delete_perm(&pool, data) {
                 Ok(_) => null_200_http_get_responder(),
                 Err(_) => null_500_http_get_responder(),
             },
@@ -273,7 +301,7 @@ fn null_404_http_get_responder() -> HttpGetResponder {
     HttpGetResponder((status, message))
 }
 pub fn null_403_http_get_responder() -> HttpGetResponder {
-    let status = Status::NotFound;
+    let status = Status::Forbidden;
     let message = serde_json::to_string(&Response {
         code: 403,
         message: "false".to_string(),
@@ -282,7 +310,7 @@ pub fn null_403_http_get_responder() -> HttpGetResponder {
     HttpGetResponder((status, message))
 }
 pub fn null_200_http_get_responder() -> HttpGetResponder {
-    let status = Status::NotFound;
+    let status = Status::Ok;
     let message = serde_json::to_string(&Response {
         code: 200,
         message: "true".to_string(),
@@ -291,10 +319,19 @@ pub fn null_200_http_get_responder() -> HttpGetResponder {
     HttpGetResponder((status, message))
 }
 pub fn null_500_http_get_responder() -> HttpGetResponder {
-    let status = Status::NotFound;
+    let status = Status::InternalServerError;
     let message = serde_json::to_string(&Response {
         code: 500,
         message: "error".to_string(),
+    })
+    .unwrap();
+    HttpGetResponder((status, message))
+}
+pub fn null_401_http_get_responder() -> HttpGetResponder {
+    let status = Status::Unauthorized;
+    let message = serde_json::to_string(&Response {
+        code: 401,
+        message: "unauthorized".to_string(),
     })
     .unwrap();
     HttpGetResponder((status, message))

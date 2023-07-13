@@ -162,7 +162,7 @@ http://127.0.0.1:8082/getpermissions?name=banchen21
     key:"密钥",
     typestr:"chat",
     data:{
-        player:"玩家名",
+        player_name:"玩家名",
         chat:"要广播到所有子服的消息"
     }
 }
