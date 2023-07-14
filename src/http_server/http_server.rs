@@ -6,7 +6,7 @@ use std::{
 use crate::{
     ser_config::{UserData, UserDataPerm},
     server::mysql_util::{
-        delete_perm, get_playerspermissions, getplayerpermission_grade, getplayerInformation,
+        delete_perm, get_playerspermissions, getplayerInformation, getplayerpermission_grade,
         insert_perm, update_perm,
     },
     yml_util::decrypt_name_t,
@@ -93,14 +93,14 @@ pub fn get_login_chat(user_data: String) -> HttpGetResponder {
         .expect("Pool not initialized")
         .clone();
     println!("正确密钥： {}", md5pws);
-    let t_timestamp = t.parse::<u128>().expect("Failed to parse timestamp");
+    let t_timestamp = t.parse::<i128>().expect("Failed to parse timestamp");
     let current_timestamp = getnewcurrent_timestamp();
     println!("服务端时间戳：{}", current_timestamp);
     println!("客户端端时间戳：{}", t_timestamp);
     let time_difference = current_timestamp - t_timestamp;
-    println!("时间差：{}", time_difference);
+    println!("时间差：{}", time_difference.abs());
 
-    if time_difference >= 60 {
+    if time_difference.abs() >= 60000 {
         null_401_http_get_responder()
     } else if md5pws == token {
         let result = getplayerInformation(&pool, &name);
@@ -153,10 +153,14 @@ pub fn getplayerall(user_data: String) -> HttpGetResponder {
         .as_ref()
         .expect("Pool not initialized")
         .clone();
-    let t_timestamp = t.parse::<u128>().expect("Failed to parse timestamp");
+    let t_timestamp = t.parse::<i128>().expect("Failed to parse timestamp");
     let current_timestamp = getnewcurrent_timestamp();
+    println!("服务端时间戳：{}", current_timestamp);
+    println!("客户端端时间戳：{}", t_timestamp);
     let time_difference = current_timestamp - t_timestamp;
-    if time_difference >= 60 {
+    println!("时间差：{}", time_difference.abs());
+
+    if time_difference.abs() >= 60000 {
         null_401_http_get_responder()
     } else if md5pws == token {
         match getplayerInformation(&pool, &name) {
@@ -221,7 +225,6 @@ pub fn perm_mg(user_data: String) -> HttpGetResponder {
         }
         Err(err) => eprintln!("Failed to parse JSON: {}", err),
     }
-    let current_timestamp = getnewcurrent_timestamp();
 
     println!("name: {}", name);
     println!("t: {}", t);
@@ -234,10 +237,15 @@ pub fn perm_mg(user_data: String) -> HttpGetResponder {
         .as_ref()
         .expect("Pool not initialized")
         .clone();
-    let t_timestamp = t.parse::<u128>().expect("Failed to parse timestamp");
 
+    let t_timestamp = t.parse::<i128>().expect("Failed to parse timestamp");
+    let current_timestamp = getnewcurrent_timestamp();
+    println!("服务端时间戳：{}", current_timestamp);
+    println!("客户端端时间戳：{}", t_timestamp);
     let time_difference = current_timestamp - t_timestamp;
-    if time_difference >= 60 {
+    println!("时间差：{}", time_difference.abs());
+
+    if time_difference.abs() >= 60000 {
         null_401_http_get_responder()
     } else if md5pws == token {
         match getplayerpermission_grade(&pool, &name) {
@@ -325,16 +333,16 @@ pub fn null_401_http_get_responder() -> HttpGetResponder {
 }
 #[catch(404)]
 pub fn not_found(req: &Request) -> String {
-    let str =
-        "默认  文档地址：https://github.com/banchen19/SynchronizerMC/blob/master/book.md".to_string();
+    let str = "默认  文档地址：https://github.com/banchen19/SynchronizerMC/blob/master/book.md"
+        .to_string();
     format!("Sorry, \n'{}' is not a valid path.\n{}", req.uri(), str)
 }
 
-fn getnewcurrent_timestamp() -> u128 {
+fn getnewcurrent_timestamp() -> i128 {
     let time = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
-        .as_millis() as u128;
+        .as_millis() as i128;
     time
 }
 // #[get("/")]

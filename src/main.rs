@@ -135,19 +135,16 @@ async fn start_ws_server(config: Config) {
         println!("{}", text.green());
         println!("WS服务端Port: {}", config.ws_port);
         println!("WS服务端Key: {}", config.ws_key);
-
+        let connections=Arc::new(Mutex::new(Vec::new()));
         if let Err(error) = listen(format!("0.0.0.0:{}", config.ws_port), |out| ServerHandler {
             out,
             key: config.ws_key.clone(),
-            connections: Arc::new(Mutex::new(Vec::new())),
+            connections:connections.clone(),
         }) {
             // 通知用户故障
             println!("创建 WebSocket 失败，原因: {:?}", error);
         }
     });
-    let text = "Http服务端已启动".to_string();
-    println!("{}", text.green());
-    println!("Http服务端port: {}", config.http_port);
     ws_server_task.await.unwrap();
 }
 
@@ -168,5 +165,8 @@ async fn start_http_server(config: Config) {
             .launch()
             .await;
     });
+    let text = "Http服务端已启动".to_string();
+    println!("{}", text.green());
+    println!("Http服务端port: {}", config.http_port);
     http_server_task.await.unwrap();
 }

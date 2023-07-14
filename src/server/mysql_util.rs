@@ -30,6 +30,7 @@ pub fn create_tables_with_foreign_key(pool: &mysql::Pool) -> mysql::Result<()> {
             `pl_device` varchar(11) DEFAULT NULL COMMENT '玩家设备',
             `pl_permission` int(11) DEFAULT 0 COMMENT '玩家权限等级',
             `pl_server_name` varchar(255) DEFAULT NULL COMMENT '玩家服务器',
+            `online_time` int(255) DEFAULT NULL COMMENT '玩家在线时长',
             PRIMARY KEY (`pl_xuid`) USING BTREE,
             KEY `device_Key` (`pl_permission`) USING BTREE,
             CONSTRAINT `permission_Key` FOREIGN KEY (`pl_permission`) REFERENCES `tb_permission` (`permission_id`) ON DELETE SET NULL
@@ -48,7 +49,8 @@ pub fn insert_player(pool: &mysql::Pool, player: Player) -> mysql::Result<()> {
             pl_ip,
             pl_online,
             pl_device,
-            pl_server_name
+            pl_server_name,
+            online_time
         ) VALUES (
             :pl_xuid,
             :pl_name,
@@ -57,6 +59,7 @@ pub fn insert_player(pool: &mysql::Pool, player: Player) -> mysql::Result<()> {
             :pl_online,
             :pl_device,
             :pl_server_name
+            :online_time
         )",
         params! {
             "pl_xuid" => player.pl_xuid,
@@ -65,7 +68,8 @@ pub fn insert_player(pool: &mysql::Pool, player: Player) -> mysql::Result<()> {
             "pl_ip" => player.pl_ip,
             "pl_online" => player.pl_online,
             "pl_device" => player.pl_device,
-            "pl_server_name" => player.pl_server_name
+            "pl_server_name" => player.pl_server_name,
+            "online_time" => player.online_time
         },
     )
 }
@@ -82,7 +86,8 @@ pub fn getplayerInformation(pool: &mysql::Pool, name: &str) -> mysql::Result<Opt
             tb_player.pl_online,
             tb_player.pl_server_name,
             tb_player.pl_device,
-            tb_permission.permission_name
+            tb_permission.permission_name,
+            tb_player.online_time
         FROM
             tb_player
             JOIN tb_permission ON tb_player.pl_permission = tb_permission.permission_id
@@ -103,6 +108,7 @@ pub fn getplayerInformation(pool: &mysql::Pool, name: &str) -> mysql::Result<Opt
                     pl_server_name,
                     pl_device,
                     permission_name,
+                    online_time,
                 )| Player {
                     pl_xuid,
                     pl_name,
@@ -112,6 +118,7 @@ pub fn getplayerInformation(pool: &mysql::Pool, name: &str) -> mysql::Result<Opt
                     pl_server_name,
                     pl_device,
                     permission_name,
+                    online_time,
                 },
             )
         });
@@ -132,6 +139,7 @@ pub fn get_playerspermissions(pool: &mysql::Pool) -> mysql::Result<Option<Player
             tb_player.pl_online,
             tb_player.pl_server_name,
             tb_player.pl_device,
+            tb_player.online_time,
             tb_permission.permission_name
         FROM
             tb_player
@@ -151,6 +159,7 @@ pub fn get_playerspermissions(pool: &mysql::Pool) -> mysql::Result<Option<Player
             pl_server_name: row.get("pl_server_name").unwrap(),
             pl_device: row.get("pl_device").unwrap(),
             permission_name: row.get("permission_name").unwrap(),
+            online_time: row.get("online_time").unwrap(),
         };
         // let json_string = serde_json::to_string(&player).unwrap();
         players.push(player);
@@ -170,13 +179,15 @@ pub fn update_player(pool: &mysql::Pool, player: Player) -> mysql::Result<()> {
          pl_ip = :ip,
          pl_online = :online,
          pl_server_name = :server_name,
-         pl_device = :device
+         pl_device = :device,
+         online_time = :online_time
          WHERE pl_name = :name",
         params! {
             "ip" => player.pl_ip,
             "online" => player.pl_online,
             "server_name" => player.pl_server_name,
             "device" => player.pl_device,
+            "online_time" => player.online_time,
             "name" => player.pl_name,
         },
     )?;
@@ -190,7 +201,8 @@ pub fn on_leftupdate_player(pool: &mysql::Pool, player: Player) -> mysql::Result
          pl_llmoney = :llmoney,
          pl_online = :online,
          pl_server_name = :server_name,
-         pl_device = :device
+         pl_device = :device,
+         online_time = :online_time
          WHERE pl_name = :name",
         params! {
             "llmoney" => player.pl_llmoney,
@@ -198,6 +210,7 @@ pub fn on_leftupdate_player(pool: &mysql::Pool, player: Player) -> mysql::Result
             "server_name" => player.pl_server_name,
             "device" => player.pl_device,
             "name" => player.pl_name,
+            "online_time" => player.online_time,
         },
     )?;
     Ok(())

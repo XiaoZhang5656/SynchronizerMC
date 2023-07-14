@@ -24,13 +24,14 @@ pub struct Player {
     pub pl_server_name: String,
     pub pl_device: String,
     pub permission_name: String,
+    pub online_time:i32
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WsData {
     pub(crate)key:String,
     pub(crate)typestr:String,
-    pub(crate)data:String,
+    pub(crate)data:serde_json::Value,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -44,7 +45,7 @@ pub struct SerToData {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SerToChatData {
     pub(crate)typestr: String,
-    pub(crate)data: String,
+    pub(crate)data: serde_json::Value,
 }
 
 #[derive(Debug, Serialize)]

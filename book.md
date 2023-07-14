@@ -164,7 +164,7 @@ http://127.0.0.1:8082/getpermissions?name=banchen21
     "data":"{
         "player_name":"玩家名",
         "perm":"null"
-        "chat":"要广播到所有子服的消息"
+        "data":"要广播到所有子服的消息"
     }"
 }
 ```
