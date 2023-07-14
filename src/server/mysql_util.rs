@@ -26,7 +26,7 @@ pub fn create_tables_with_foreign_key(pool: &mysql::Pool) -> mysql::Result<()> {
             `pl_name` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '玩家名字',
             `pl_llmoney` int(255) DEFAULT NULL COMMENT '玩家游戏余额',
             `pl_ip` varchar(255) DEFAULT NULL  COMMENT '玩家IP地址',
-            `pl_online` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '玩家是否在线',
+            `pl_online` int(2)  DEFAULT 0 COMMENT '玩家是否在线',
             `pl_device` varchar(11) DEFAULT NULL COMMENT '玩家设备',
             `pl_permission` int(11) DEFAULT 0 COMMENT '玩家权限等级',
             `pl_server_name` varchar(255) DEFAULT NULL COMMENT '玩家服务器',

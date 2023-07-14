@@ -20,7 +20,7 @@ pub struct Player {
     pub pl_name: String,
     pub pl_llmoney: i32,
     pub pl_ip: String,
-    pub pl_online: String,
+    pub pl_online: u8,
     pub pl_server_name: String,
     pub pl_device: String,
     pub permission_name: String,
@@ -45,6 +45,7 @@ pub struct SerToData {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SerToChatData {
     pub(crate)typestr: String,
+    pub(crate)serverver_name: String,
     pub(crate)data: serde_json::Value,
 }
 

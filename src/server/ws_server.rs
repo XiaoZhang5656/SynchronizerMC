@@ -96,6 +96,7 @@ fn on_msg_util(_server_handler: &mut ServerHandler, msg: String) {
                                                 serde_json::to_value(&player).unwrap();
                                             let chatdata = SerToChatData {
                                                 typestr: "updata".to_owned(),
+                                                serverver_name:player.pl_server_name,
                                                 data: json_string,
                                             };
                                             to_send_chat_bds(
@@ -156,6 +157,7 @@ fn on_chat(_server_handler: &mut ServerHandler, chat_data: SerToData) {
             let json_data = serde_json::to_value(&chat_data).unwrap();
             let ser_to_chat_data = SerToChatData {
                 data: json_data,
+                serverver_name:player.pl_server_name,
                 typestr: "chat".to_owned(),
             };
             to_send_chat_bds(_server_handler.connections.clone(), ser_to_chat_data)
